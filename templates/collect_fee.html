@@ -1,0 +1,483 @@
+{% extends 'base.html' %}
+{% block title %}Fee Collection{% endblock %}
+
+{% block content %}
+<div class="fee-collection-wrapper">
+  <!-- ===========================
+       1. Summary Cards Row
+       =========================== -->
+  <div class="container-fluid mt-4">
+    <div class="row g-4 justify-content-center">
+      <!-- Total Fee Collected -->
+      <div class="col-lg-3 col-md-6">
+        <div class="summary-card bg-gradient-blue text-white">
+          <div class="card-icon">
+            <i class="fas fa-coins"></i>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Total Fee Collected</h5>
+            <h2 class="card-value">Rs {{ total_fee }}</h2>
+            <p class="card-text">For {{ month_name[current_month] }} {{ current_year }}</p>
+          </div>
+        </div>
+      </div>
+      <!-- Fully Paid -->
+      <div class="col-lg-3 col-md-6">
+        <div class="summary-card bg-gradient-green text-white">
+          <div class="card-icon">
+            <i class="fas fa-user-check"></i>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Fully Paid</h5>
+            <h2 class="card-value">{{ fully_paid_students|length }}</h2>
+            <p class="card-text">Students with complete payment</p>
+          </div>
+        </div>
+      </div>
+      <!-- Partially Paid -->
+      <div class="col-lg-3 col-md-6">
+        <div class="summary-card bg-gradient-yellow text-white">
+          <div class="card-icon">
+            <i class="fas fa-user-clock"></i>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Partially Paid</h5>
+            <h2 class="card-value">{{ partially_paid_students|length }}</h2>
+            <p class="card-text">Students with partial payment</p>
+          </div>
+        </div>
+      </div>
+      <!-- Unpaid -->
+      <div class="col-lg-3 col-md-6">
+        <div class="summary-card bg-gradient-red text-white">
+          <div class="card-icon">
+            <i class="fas fa-user-times"></i>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Unpaid</h5>
+            <h2 class="card-value">{{ unpaid_students|length }}</h2>
+            <p class="card-text">Students pending payment</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===========================
+       2. Collect Fee Form
+       =========================== -->
+  <div class="container-fluid mt-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-6 col-md-8">
+        <div class="form-card bg-white shadow-sm">
+          <div class="form-card-header bg-gradient-blue text-white d-flex align-items-center">
+            <i class="fas fa-hand-holding-usd me-2 fs-4"></i>
+            <h5 class="mb-0">Collect Fee</h5>
+          </div>
+          <div class="form-card-body">
+            <form method="POST" action="{{ url_for('collect_fee') }}" class="needs-validation" novalidate>
+              {{ form.hidden_tag() }}
+
+              <!-- Student Name & Fee -->
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label for="student_name" class="form-label">Student Name</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="fas fa-user-graduate text-secondary"></i></span>
+                    <select name="student_name" id="student_name"
+                            class="form-select form-select-lg" required>
+                      <option value="" disabled selected>Select Student</option>
+                      {% for student in unpaid_students %}
+                        <option value="{{ student.name }}"
+                                data-fee="{{ student.fee }}"
+                                data-remaining="{{ student.fee }}">
+                          {{ student.name }} &mdash; Fee: Rs {{ student.fee }}
+                        </option>
+                      {% endfor %}
+                      {% for student in partially_paid_students %}
+                        <option value="{{ student.name }}"
+                                data-fee="{{ student.fee }}"
+                                data-remaining="{{ student.remaining_fee }}">
+                          {{ student.name }} &mdash; Remaining: Rs {{ student.remaining_fee }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">
+                      Please select a student.
+                    </div>
+                  </div>
+                  <div class="form-text text-muted" id="remaining_fee_text">
+                    Remaining fee: —
+                  </div>
+                </div>
+
+                <!-- Amount Paid -->
+                <div class="col-md-12">
+                  <label for="amount" class="form-label">Amount</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white">Rs</span>
+                    {{ form.amount(class="form-control form-control-lg", id="amount", placeholder="0.00", required="required") }}
+                    <div class="invalid-feedback">
+                      Please enter an amount.
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Date Paid -->
+                <div class="col-md-12">
+                  <label for="date" class="form-label">Date Paid</label>
+                  {{ form.date(class="form-control form-control-lg", id="date", type="date", required="required") }}
+                  <div class="invalid-feedback">
+                    Please select a date.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="mt-4 d-grid">
+                {{ form.submit(class="btn btn-gradient-green btn-lg shadow-sm") }}
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================
+       3. Status Tables (Fully / Partial / Unpaid)
+       ======================================== -->
+  <div class="container-fluid mt-5">
+    <div class="row g-4 justify-content-center status-tables-row">
+      <!-- Fully Paid Students Table -->
+      <div class="col-lg-4 col-md-6">
+        <div class="status-card bg-white shadow-sm">
+          <div class="status-card-header bg-gradient-green text-white d-flex align-items-center">
+            <i class="fas fa-user-check me-2 fs-4"></i>
+            <h6 class="mb-0">Fully Paid Students</h6>
+          </div>
+          <div class="status-card-body">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Name</th>
+                    <th class="text-end">Total Fee</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in fully_paid_students %}
+                  <tr>
+                    <td>{{ student.name }}</td>
+                    <td class="text-end">Rs {{ student.fee }}</td>
+                    <td class="text-center">
+                      <span class="badge bg-success">Paid</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Partially Paid Students Table -->
+      <div class="col-lg-4 col-md-6">
+        <div class="status-card bg-white shadow-sm">
+          <div class="status-card-header bg-gradient-yellow text-dark d-flex align-items-center">
+            <i class="fas fa-user-clock me-2 fs-4"></i>
+            <h6 class="mb-0">Partially Paid Students</h6>
+          </div>
+          <div class="status-card-body">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Name</th>
+                    <th class="text-end">Remaining</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in partially_paid_students %}
+                  <tr>
+                    <td>{{ student.name }}</td>
+                    <td class="text-end">Rs {{ student.remaining_fee }}</td>
+                    <td class="text-center">
+                      <span class="badge bg-warning text-dark">Partial</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unpaid Students Table (Scrollable) -->
+      <div class="col-lg-4 col-md-6">
+        <div class="status-card bg-white shadow-sm">
+          <div class="status-card-header bg-gradient-red text-white d-flex align-items-center">
+            <i class="fas fa-user-times me-2 fs-4"></i>
+            <h6 class="mb-0">Unpaid Students</h6>
+          </div>
+          <div class="status-card-body status-scrollable">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Name</th>
+                    <th class="text-end">Due Amount</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in unpaid_students %}
+                  <tr>
+                    <td>{{ student.name }}</td>
+                    <td class="text-end">Rs {{ student.fee }}</td>
+                    <td class="text-center">
+                      <span class="badge bg-danger">Unpaid</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div> <!-- /.fee-collection-wrapper -->
+
+
+<!-- ======================================
+     Inline CSS (extract to style.css if preferred)
+     ====================================== -->
+<style>
+  /* Ensure full-screen particle background behind everything */
+  .fee-collection-wrapper {
+    position: relative;
+    z-index: 1;
+    padding-bottom: 60px;
+  }
+
+  /* ================================
+     1. Summary Cards (Row 1)
+     ================================ */
+  .summary-card {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    color: #fff;
+    padding: 1.25rem;
+    position: relative;
+  }
+  .summary-card .card-icon {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 2rem;
+    opacity: 0.2;
+  }
+  .summary-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .summary-card .card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+  .summary-card .card-text {
+    font-size: 0.85rem;
+    opacity: 0.9;
+  }
+  .summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Gradients for summary cards */
+  .bg-gradient-blue {
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+  }
+  .bg-gradient-green {
+    background: linear-gradient(135deg, #34d399, #059669);
+  }
+  .bg-gradient-yellow {
+    background: linear-gradient(135deg, #facc15, #eab308);
+  }
+  .bg-gradient-red {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+  }
+
+  /* ================================
+     2. Collect Fee Form (Row 2)
+     ================================ */
+  .form-card {
+    background: #fff;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .form-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  }
+  .form-card-header {
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .form-card-body {
+    padding: 1.25rem;
+  }
+  .form-card .form-control,
+  .form-card .form-select {
+    border-radius: 0.5rem;
+    border: 1px solid #ced4da;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .form-card .form-control:focus,
+  .form-card .form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.25);
+  }
+  .btn-gradient-green {
+    background: linear-gradient(135deg, #34d399, #059669) !important;
+    border: none !important;
+    color: #fff !important;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .btn-gradient-green:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+  }
+
+  /* ================================
+     3. Status Tables (Row 3)
+     ================================ */
+  .status-tables-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .status-card {
+    background: #fff;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 1rem;
+  }
+  .status-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  }
+  .status-card-header {
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .status-card-body {
+    max-height: 300px; /* limits table height */
+    overflow-y: auto;
+  }
+  .status-card-body .table th,
+  .status-card-body .table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+  }
+  .table-sm.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+  .table-hover tbody tr:hover {
+    background-color: rgba(37, 99, 235, 0.1);
+    transform: scale(1.01);
+    transition: all 0.3s ease;
+  }
+
+  /* Make “Unpaid” column scrollable if too long */
+  .status-scrollable {
+    overflow-y: auto;
+  }
+
+  /* ================================
+     4. Utility Animations & Responsiveness
+     ================================ */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+    opacity: 0;
+  }
+
+  @media (max-width: 992px) {
+    .status-card {
+      flex: 1 1 100%;
+      max-width: 100%;
+    }
+    .summary-card {
+      margin-bottom: 1rem;
+    }
+  }
+</style>
+
+
+<!-- ======================================
+     JavaScript: Form Validation + Dynamic Fee Display
+     ====================================== -->
+<script>
+  // Bootstrap form validation
+  (function () {
+    'use strict';
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  })();
+
+  // Update “Remaining fee” and default amount when selecting a student
+  document.addEventListener('DOMContentLoaded', function() {
+    const studentSelect = document.getElementById('student_name');
+    const amountInput = document.getElementById('amount');
+    const remainingFeeText = document.getElementById('remaining_fee_text');
+
+    studentSelect.addEventListener('change', function() {
+      const selected = this.options[this.selectedIndex];
+      const remaining = selected.getAttribute('data-remaining');
+      if (remaining) {
+        amountInput.value = remaining;
+        remainingFeeText.textContent = `Remaining fee: Rs ${remaining}`;
+      } else {
+        amountInput.value = '';
+        remainingFeeText.textContent = '';
+      }
+    });
+  });
+</script>
+
+{% endblock %}

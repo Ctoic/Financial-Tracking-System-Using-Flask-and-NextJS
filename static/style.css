@@ -1,0 +1,170 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1a1a1a; /* Dark background */
+    color: white; /* Set default text color to white */
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #e0e0e0; /* Lighter color for headings */
+}
+
+header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+.carousel {
+    margin: 20px auto;
+    max-width: 800px;
+}
+
+.carousel img {
+    height: 400px;
+    object-fit: cover;
+}
+
+.nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.nav-bar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-bar ul li {
+    display: inline;
+    margin-right: 20px;
+}
+
+.nav-bar ul li a {
+    color: white; /* White links */
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.container {
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.intro {
+    margin: 20px 0;
+}
+
+.gallery {
+    margin: 20px 0;
+}
+
+.photo-gallery {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.photo-gallery img {
+    width: 24%;
+    border-radius: 10px;
+}
+
+.facilities ul {
+    list-style-type: square;
+    padding-left: 20px;
+    color: #070000; /* Lighter color for list items */
+}
+
+/* Footer styling */
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 20px 0;
+    margin-top: 20px;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0 20px;
+}
+
+.contact-info {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px; /* Space between items */
+    flex-wrap: wrap;
+}
+
+.contact-info p {
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+    color: white; /* Ensure contact info is white */
+}
+
+.interactive-link {
+    color: #4CAF50;
+    text-decoration: none;
+}
+
+.interactive-link:hover {
+    text-decoration: underline;
+    color: #2e7d32;
+}
+
+.social-icons {
+    margin-top: 10px;
+}
+
+.social-icon img {
+    width: 30px;
+    margin: 0 10px;
+    transition: transform 0.3s ease;
+}
+
+.social-icon img:hover {
+    transform: scale(1.2);
+}
+
+/* Styles for interactive cards and buttons */
+.card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    color: black !important;
+}
+
+.btn-primary, .btn-danger {
+    transition: transform 0.2s ease-in-out;
+}
+
+.btn-primary:hover, .btn-danger:hover {
+    transform: scale(1.05);
+}
+
+.table th, .table td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.btn-warning {
+    color: #fff;
+}
+
+.card-body, .card-title, .form-label, input {
+    color: rgb(11, 72, 170) !important;
+}
+
+.card p-4 {
+    background-color: black;
+}

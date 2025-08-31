@@ -57,7 +57,6 @@ export default function Expenses() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [csrfToken, setCsrfToken] = useState<string>('');
   const [formData, setFormData] = useState({
     item_name: '',
     price: '',
@@ -84,21 +83,9 @@ export default function Expenses() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchCsrfToken();
       fetchExpenses();
     }
   }, [isAuthenticated, selectedMonth, selectedYear]);
-
-  const fetchCsrfToken = async () => {
-    try {
-      const response = await axios.get('http://localhost:5051/api/csrf-token', {
-        withCredentials: true
-      });
-      setCsrfToken(response.data.csrf_token);
-    } catch (error) {
-      console.error('Error fetching CSRF token:', error);
-    }
-  };
 
   const fetchExpenses = async () => {
     try {
@@ -162,18 +149,11 @@ export default function Expenses() {
 
       console.log('Submitting formatted data:', formattedData);
 
-      // First, get a fresh CSRF token
-      const tokenResponse = await axios.get('http://localhost:5051/api/csrf-token', {
-        withCredentials: true
-      });
-      const freshToken = tokenResponse.data.csrf_token;
-
       const response = await axios.post('http://localhost:5051/api/expenses', formattedData, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-Token': freshToken
+          'Accept': 'application/json'
         }
       });
       
@@ -199,17 +179,10 @@ export default function Expenses() {
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
       try {
-        // Get a fresh CSRF token
-        const tokenResponse = await axios.get('http://localhost:5051/api/csrf-token', {
-          withCredentials: true
-        });
-        const freshToken = tokenResponse.data.csrf_token;
-
         const response = await axios.delete(`http://localhost:5051/api/expenses?id=${id}`, {
           withCredentials: true,
           headers: {
-            'Accept': 'application/json',
-            'X-CSRF-Token': freshToken
+            'Accept': 'application/json'
           }
         });
         
@@ -269,29 +242,44 @@ export default function Expenses() {
           <h1 className="text-2xl font-semibold text-gray-900">Expenses</h1>
           <div className="flex items-center space-x-4">
             {/* Date Filters */}
-            <div className="flex items-center space-x-2">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                {months.map(month => (
-                  <option key={month.value} value={month.value}>
-                    {month.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                {years.map(year => (
-                  <option key={year.value} value={year.value}>
-                    {year.label}
-                  </option>
-                ))}
-              </select>
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  className="appearance-none bg-white border-2 border-gray-200 rounded-lg px-4 py-2.5 pr-10 text-gray-700 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 hover:border-gray-300 cursor-pointer min-w-[140px]"
+                >
+                  {months.map(month => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="appearance-none bg-white border-2 border-gray-200 rounded-lg px-4 py-2.5 pr-10 text-gray-700 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 hover:border-gray-300 cursor-pointer min-w-[100px]"
+                >
+                  {years.map(year => (
+                    <option key={year.value} value={year.value}>
+                      {year.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
             {/* Download Report Button */}
             <button
@@ -364,7 +352,7 @@ export default function Expenses() {
                     <div className="text-sm text-gray-900">{expense.item_name}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">Rs:{expense.price}</div>
+                    <div className="text-sm text-gray-900">Rs.{expense.price}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -387,54 +375,78 @@ export default function Expenses() {
 
         {/* Add Expense Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-            <div className="bg-dark-500 rounded-lg p-8 max-w-md w-full">
-              <h2 className="text-xl font-semibold mb-4">Add New Expense</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 ease-out scale-100 opacity-100">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Add New Expense</h2>
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    resetForm();
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Item Name</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Item Name</label>
                   <input
                     type="text"
                     value={formData.item_name}
                     onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-gray-400"
+                    placeholder="Enter item name"
                     required
                   />
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Amount</label>
-                  <input
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-gray-500 font-medium">Rs.</span>
+                    <input
+                      type="number"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      required
+                    />
+                  </div>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Date</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
                   <input
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                     required
                   />
                 </div>
-                <div className="flex justify-end space-x-4">
+                
+                <div className="flex justify-end space-x-4 pt-4">
                   <button
                     type="button"
                     onClick={() => {
                       setIsModalOpen(false);
                       resetForm();
                     }}
-                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
                   >
                     Add Expense
                   </button>

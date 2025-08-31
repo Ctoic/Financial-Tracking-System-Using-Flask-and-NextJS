@@ -16,9 +16,8 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // First, try to directly check if the backend is accessible
+      // First, try to directly check if the backend is accessible 
       try {
         await axios.get('http://localhost:5051/');
         console.log('Backend is accessible');

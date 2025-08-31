@@ -49,7 +49,7 @@ export default function Rooms() {
         throw new Error(response.data.error);
       }
       
-      const roomsData = response.data.rooms || [];
+      let roomsData = response.data.rooms || [];
       console.log('Processed rooms data:', roomsData);
       
       if (!Array.isArray(roomsData)) {
@@ -58,16 +58,30 @@ export default function Rooms() {
         setRooms([]);
         return;
       }
+
+      // Ensure we have the expected number of rooms
+      if (roomsData.length !== 18) {
+        console.warn(`Expected 18 rooms, but got ${roomsData.length}. This might indicate a backend issue.`);
+      }
       
       setRooms(roomsData);
     } catch (error) {
       console.error('Error fetching rooms:', error);
-      setError('Failed to fetch rooms');
-      toast.error('Failed to fetch rooms');
+      setError('Failed to fetch rooms from server');
       setRooms([]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+
+
+  const getRoomCapacityLabel = (capacity: number) => {
+    return capacity === 3 ? '3-Seater' : '4-Seater';
+  };
+
+  const getRoomCapacityColor = (capacity: number) => {
+    return capacity === 3 ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
   };
 
   if (loading || isLoading) {
@@ -95,6 +109,10 @@ export default function Rooms() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-gray-900">Rooms</h1>
+          <div className="text-sm text-gray-600">
+            <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full mr-2">3-Seater Rooms: 14</span>
+            <span className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded-full">4-Seater Rooms: 4</span>
+          </div>
         </div>
 
         {/* Rooms Grid */}
@@ -107,9 +125,14 @@ export default function Rooms() {
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Room {room.room_number}
-                    </h3>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Room {room.room_number}
+                      </h3>
+                      <span className={`inline-block mt-1 px-2 py-1 text-xs font-semibold rounded-full ${getRoomCapacityColor(room.capacity)}`}>
+                        {getRoomCapacityLabel(room.capacity)}
+                      </span>
+                    </div>
                     <span
                       className={`px-2 py-1 text-xs font-semibold rounded-full ${
                         room.current_occupancy === room.capacity

@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_login import UserMixin
 from sqlalchemy.orm import relationship
+from sqlalchemy import extract
 
 
 db = SQLAlchemy()
@@ -12,6 +13,8 @@ class FeeRecord(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     date_paid = db.Column(db.Date, default=datetime.utcnow)
+    payment_method = db.Column(db.String(50), default='cash')  # cash, card, online, etc.
+    month_year = db.Column(db.String(7), nullable=False)  # Format: YYYY-MM for monthly tracking
     student = relationship('Student', back_populates='fee_records')
 
 
@@ -26,10 +29,13 @@ class Room(db.Model):
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True)
+    phone = db.Column(db.String(20))
     fee = db.Column(db.Float, nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
     picture = db.Column(db.String(100))
     status = db.Column(db.String(20), default='active')  # active, inactive, graduated
+    fee_status = db.Column(db.String(20), default='unpaid')  # unpaid, partial, paid
     enrollment_date = db.Column(db.DateTime, default=datetime.utcnow)
     last_fee_payment = db.Column(db.DateTime)
     
@@ -41,26 +47,31 @@ class Student(db.Model):
         return f'<Student {self.name}>'
 
     @property
+    def room_number(self):
+        """Get room number for compatibility"""
+        return self.room.room_number if self.room else None
+
+    @property
     def is_fee_paid(self):
         """Check if the student has paid fees for the current month"""
         current_month = datetime.now().month
         current_year = datetime.now().year
         total_paid = sum(record.amount for record in FeeRecord.query.filter(
             FeeRecord.student_id == self.id,
-            db.extract('month', FeeRecord.date_paid) == current_month,
-            db.extract('year', FeeRecord.date_paid) == current_year
+            extract('month', FeeRecord.date_paid) == current_month,
+            extract('year', FeeRecord.date_paid) == current_year
         ).all())
         return total_paid >= self.fee
 
     @property
-    def fee_status(self):
-        """Get the fee payment status for the current month"""
+    def computed_fee_status(self):
+        """Get the computed fee payment status for the current month"""
         current_month = datetime.now().month
         current_year = datetime.now().year
         total_paid = sum(record.amount for record in FeeRecord.query.filter(
             FeeRecord.student_id == self.id,
-            db.extract('month', FeeRecord.date_paid) == current_month,
-            db.extract('year', FeeRecord.date_paid) == current_year
+            extract('month', FeeRecord.date_paid) == current_month,
+            extract('year', FeeRecord.date_paid) == current_year
         ).all())
         
         if total_paid == 0:
@@ -77,8 +88,8 @@ class Student(db.Model):
         current_year = datetime.now().year
         total_paid = sum(record.amount for record in FeeRecord.query.filter(
             FeeRecord.student_id == self.id,
-            db.extract('month', FeeRecord.date_paid) == current_month,
-            db.extract('year', FeeRecord.date_paid) == current_year
+            extract('month', FeeRecord.date_paid) == current_month,
+            extract('year', FeeRecord.date_paid) == current_year
         ).all())
         return max(0, self.fee - total_paid)
 
@@ -116,3 +127,34 @@ class User(db.Model):
     username = db.Column(db.String(150), nullable=False, unique=True)
     email = db.Column(db.String(150), nullable=False, unique=True)
     password = db.Column(db.String(150), nullable=False)
+
+# Employee Model
+class Employee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    position = db.Column(db.String(100), nullable=False)  # Manager, Cook, etc.
+    base_salary = db.Column(db.Float, nullable=False)
+    hire_date = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='active')  # active, inactive, terminated
+    
+    # Relationships
+    salary_records = relationship('SalaryRecord', back_populates='employee')
+    
+    def __repr__(self):
+        return f'<Employee {self.name} - {self.position}>'
+
+# SalaryRecord Model
+class SalaryRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    month_year = db.Column(db.String(7), nullable=False)  # Format: YYYY-MM for monthly tracking
+    amount_paid = db.Column(db.Float, nullable=False)
+    date_paid = db.Column(db.DateTime, default=datetime.utcnow)
+    payment_method = db.Column(db.String(50), default='cash')  # cash, bank_transfer, check, etc.
+    notes = db.Column(db.Text)
+    
+    # Relationships
+    employee = relationship('Employee', back_populates='salary_records')
+    
+    def __repr__(self):
+        return f'<SalaryRecord {self.employee.name} - {self.month_year} - Rs{self.amount_paid}>'

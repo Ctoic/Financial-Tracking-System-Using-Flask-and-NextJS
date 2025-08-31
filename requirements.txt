@@ -4,6 +4,7 @@ Flask-Migrate==4.0.5
 Flask-Login==0.6.3
 Flask-WTF==1.2.1
 Flask-Bcrypt==1.0.1
+Flask-CORS==6.0.1
 Werkzeug==3.0.1
 SQLAlchemy==2.0.25
 reportlab==4.1.0

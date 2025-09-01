@@ -30,6 +30,12 @@ export default function Students() {
   });
   const [rooms, setRooms] = useState<any[]>([]);
 
+  // Bulk upload states
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<any>(null);
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login');
@@ -159,6 +165,92 @@ export default function Students() {
     }
   };
 
+  // Bulk upload functions
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+          file.type === 'application/vnd.ms-excel') {
+        setUploadFile(file);
+        setError(null);
+      } else {
+        toast.error('Please select an Excel file (.xlsx or .xls)');
+        setUploadFile(null);
+      }
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!uploadFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+
+      const response = await axios.post('http://localhost:5051/api/students/bulk-upload', formData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const data = response.data as { success: boolean; message: string; summary?: any };
+      if (data.success) {
+        setUploadResult(data.summary);
+        toast.success(data.message);
+        fetchStudents();
+        fetchRooms();
+        setUploadFile(null);
+      } else {
+        toast.error(data.message || 'Upload failed');
+      }
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      const errorMessage = error.response?.data?.message || 'Upload failed';
+      toast.error(errorMessage);
+      setError(errorMessage);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const downloadTemplate = async () => {
+    try {
+      const response = await axios.get('http://localhost:5051/api/students/download-template', {
+        withCredentials: true,
+        responseType: 'blob',
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'student_bulk_upload_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Template downloaded successfully');
+    } catch (error: any) {
+      console.error('Error downloading template:', error);
+      toast.error('Failed to download template');
+    }
+  };
+
+  const resetBulkUpload = () => {
+    setShowBulkUpload(false);
+    setUploadFile(null);
+    setUploadResult(null);
+    setError(null);
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -193,15 +285,29 @@ export default function Students() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-gray-900">Students</h1>
-          <button
-            onClick={() => {
-              resetForm();
-              setIsModalOpen(true);
-            }}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-          >
-            Add New Student
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => {
+                resetForm();
+                setIsModalOpen(true);
+              }}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+            >
+              Add New Student
+            </button>
+            <button
+              onClick={() => setShowBulkUpload(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+            >
+              Bulk Upload
+            </button>
+            <button
+              onClick={downloadTemplate}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              Download Template
+            </button>
+          </div>
         </div>
 
         {/* Students Table */}
@@ -521,6 +627,148 @@ export default function Students() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Upload Modal */}
+        {showBulkUpload && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-2xl border border-green-200 p-8 max-w-2xl w-full transform transition-all duration-300 scale-100">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-800">Bulk Upload Students</h2>
+                </div>
+                <button
+                  onClick={resetBulkUpload}
+                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* File Upload Section */}
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:border-green-400 transition-colors duration-200">
+                      <div className="space-y-1 text-center">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <div className="flex text-sm text-gray-600">
+                          <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-green-500">
+                            <span>Upload Excel file</span>
+                            <input
+                              id="file-upload"
+                              name="file-upload"
+                              type="file"
+                              className="sr-only"
+                              accept=".xlsx,.xls"
+                              onChange={handleFileChange}
+                            />
+                          </label>
+                          <p className="pl-1">or drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">Excel files only (.xlsx, .xls)</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {uploadFile && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-green-800 font-medium">File selected: {uploadFile.name}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Instructions */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-blue-800 font-medium mb-2">📋 Upload Instructions</h3>
+                  <ul className="text-blue-700 text-sm space-y-1">
+                    <li>• Download the template first to see the required format</li>
+                    <li>• Required columns: <strong>name</strong>, <strong>fee</strong>, <strong>room_id</strong></li>
+                    <li>• Room capacity: Rooms 1-14 (3 students), Rooms 15-18 (4 students)</li>
+                    <li>• Student names must be unique</li>
+                    <li>• Fee must be a positive number</li>
+                  </ul>
+                </div>
+
+                {/* Upload Results */}
+                {uploadResult && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h3 className="text-gray-800 font-medium mb-3">📊 Upload Results</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Total Processed:</span>
+                        <span className="ml-2 font-semibold">{uploadResult.total_processed}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Successfully Added:</span>
+                        <span className="ml-2 font-semibold text-green-600">{uploadResult.success_count}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Errors:</span>
+                        <span className="ml-2 font-semibold text-red-600">{uploadResult.error_count}</span>
+                      </div>
+                    </div>
+                    
+                    {uploadResult.errors && uploadResult.errors.length > 0 && (
+                      <div className="mt-3">
+                        <h4 className="text-gray-700 font-medium mb-2">Error Details:</h4>
+                        <div className="bg-red-50 border border-red-200 rounded p-3 max-h-32 overflow-y-auto">
+                          {uploadResult.errors.map((error: string, index: number) => (
+                            <div key={index} className="text-red-700 text-xs mb-1">• {error}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={resetBulkUpload}
+                    className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200 hover:shadow-md active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkUpload}
+                    disabled={!uploadFile || isUploading}
+                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg active:scale-95 transform disabled:cursor-not-allowed"
+                  >
+                    {isUploading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Uploading...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span>Upload Students</span>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

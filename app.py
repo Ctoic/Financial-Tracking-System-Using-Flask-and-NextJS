@@ -61,6 +61,19 @@ def create_tables():
             room = Room(room_number=i, capacity=4)
             db.session.add(room)
     
+    # Create initial employees if they don't exist
+    if not Employee.query.filter_by(name='M Bilal').first():
+        bilal = Employee(name='M Bilal', position='Manager', base_salary=50000)
+        db.session.add(bilal)
+    
+    if not Employee.query.filter_by(name='Ishfaq Hussain').first():
+        ishfaq = Employee(name='Ishfaq Hussain', position='Cook', base_salary=30000)
+        db.session.add(ishfaq)
+    
+    if not Employee.query.filter_by(name='Abdul Waheed').first():
+        abdul = Employee(name='Abdul Waheed', position='Cook', base_salary=20000)
+        db.session.add(abdul)
+    
     db.session.commit()
     
 @login_manager.user_loader
@@ -233,6 +246,18 @@ def api_dashboard():
             Student.fee_status == 'unpaid'
         ).count()
 
+        # Calculate total salaries for current month
+        current_month_year = f"{current_year:04d}-{current_month:02d}"
+        current_month_salaries = SalaryRecord.query.filter_by(month_year=current_month_year).all()
+        total_salaries_current = sum(record.amount_paid for record in current_month_salaries)
+        
+        # Calculate total salaries for previous month
+        prev_month = current_month - 1 if current_month > 1 else 12
+        prev_year = current_year if current_month > 1 else current_year - 1
+        prev_month_year = f"{prev_year:04d}-{prev_month:02d}"
+        prev_month_salaries = SalaryRecord.query.filter_by(month_year=prev_month_year).all()
+        total_salaries_previous = sum(record.amount_paid for record in prev_month_salaries)
+
         return jsonify({
             'total_students': total_students,
             'monthly_expenses': monthly_expenses,
@@ -244,7 +269,9 @@ def api_dashboard():
             'profit_loss': profit_loss,
             'fully_paid': fully_paid,
             'partially_paid': partially_paid,
-            'unpaid': unpaid
+            'unpaid': unpaid,
+            'total_salaries_current': total_salaries_current,
+            'total_salaries_previous': total_salaries_previous
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1028,6 +1055,23 @@ def add_salary_payment(employee_id):
         )
         
         db.session.add(salary_record)
+        
+        # Automatically create an expense record for the salary payment
+        # Parse month_year to get date for expense
+        year, month = data['month_year'].split('-')
+        expense_date = datetime(int(year), int(month), 1)  # First day of the month
+        
+        # Get current admin user ID from the authenticated session
+        admin_user_id = current_user.id
+        
+        salary_expense = Expense(
+            item_name=f"Salary paid to {employee.name} ({employee.position})",
+            price=float(data['amount_paid']),
+            date=expense_date,
+            user_id=admin_user_id
+        )
+        
+        db.session.add(salary_expense)
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Salary payment recorded successfully'})
@@ -1060,6 +1104,20 @@ def update_salary_payment(salary_id):
 def delete_salary_payment(salary_id):
     try:
         salary_record = SalaryRecord.query.get_or_404(salary_id)
+        
+        # Find and delete the corresponding expense record
+        # The expense name format is "Salary paid to {employee.name} ({employee.position})"
+        expense_name = f"Salary paid to {salary_record.employee.name} ({salary_record.employee.position})"
+        corresponding_expense = Expense.query.filter_by(
+            item_name=expense_name,
+            price=salary_record.amount_paid,
+            user_id=current_user.id
+        ).first()
+        
+        if corresponding_expense:
+            db.session.delete(corresponding_expense)
+        
+        # Delete the salary record
         db.session.delete(salary_record)
         db.session.commit()
         
@@ -1102,6 +1160,277 @@ def get_monthly_salary_summary(month_year):
         return jsonify({'success': True, 'summary': summary})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# Get salary summary by year
+@app.route('/api/salaries/yearly-summary/<int:year>', methods=['GET'])
+def get_yearly_salary_summary(year):
+    try:
+        # Get all salary records for the specified year
+        salary_records = SalaryRecord.query.filter(
+            SalaryRecord.month_year.like(f"{year}-%")
+        ).all()
+        
+        # Group by month
+        monthly_summary = {}
+        for i in range(1, 13):
+            month_key = f"{year:04d}-{i:02d}"
+            monthly_summary[month_key] = {
+                'month': month_key,
+                'total_paid': 0,
+                'employee_count': 0,
+                'payments': []
+            }
+        
+        # Calculate monthly totals
+        for record in salary_records:
+            month_key = record.month_year
+            if month_key in monthly_summary:
+                monthly_summary[month_key]['total_paid'] += record.amount_paid
+                monthly_summary[month_key]['employee_count'] += 1
+                monthly_summary[month_key]['payments'].append({
+                    'employee_name': record.employee.name,
+                    'position': record.employee.position,
+                    'amount_paid': record.amount_paid,
+                    'date_paid': record.date_paid.strftime('%Y-%m-%d')
+                })
+        
+        # Convert to list and sort by month
+        monthly_list = list(monthly_summary.values())
+        monthly_list.sort(key=lambda x: x['month'])
+        
+        # Calculate yearly totals
+        yearly_total = sum(month['total_paid'] for month in monthly_list)
+        total_employees = Employee.query.filter_by(status='active').count()
+        
+        summary = {
+            'year': year,
+            'yearly_total': yearly_total,
+            'total_employees': total_employees,
+            'monthly_breakdown': monthly_list
+        }
+        
+        return jsonify({'success': True, 'summary': summary})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Get all available month-year combinations for filtering
+@app.route('/api/salaries/available-months', methods=['GET'])
+def get_available_salary_months():
+    try:
+        # Get all unique month_year values from salary records
+        month_years = db.session.query(SalaryRecord.month_year).distinct().order_by(SalaryRecord.month_year.desc()).all()
+        
+        # Get all unique years from salary records
+        years = db.session.query(
+            db.func.substr(SalaryRecord.month_year, 1, 4).label('year')
+        ).distinct().order_by(db.func.substr(SalaryRecord.month_year, 1, 4).desc()).all()
+        
+        available_months = [month[0] for month in month_years]
+        available_years = [year[0] for year in years]
+        
+        return jsonify({
+            'success': True,
+            'available_months': available_months,
+            'available_years': available_years
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Bulk upload students via Excel
+@app.route('/api/students/bulk-upload', methods=['POST'])
+@login_required
+def bulk_upload_students():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No file selected'}), 400
+        
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return jsonify({'success': False, 'message': 'Please upload an Excel file (.xlsx or .xls)'}), 400
+        
+        # Read the Excel file
+        try:
+            df = pd.read_excel(file)
+        except Exception as e:
+            return jsonify({'success': False, 'message': f'Error reading Excel file: {str(e)}'}), 400
+        
+        # Validate required columns
+        required_columns = ['name', 'fee', 'room_id']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            return jsonify({
+                'success': False, 
+                'message': f'Missing required columns: {", ".join(missing_columns)}'
+            }), 400
+        
+        # Process the data
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        for index, row in df.iterrows():
+            try:
+                # Validate data
+                name = str(row['name']).strip()
+                fee = float(row['fee'])
+                room_id = int(row['room_id'])
+                
+                if not name or pd.isna(name):
+                    errors.append(f"Row {index + 2}: Name is required")
+                    error_count += 1
+                    continue
+                
+                if fee <= 0:
+                    errors.append(f"Row {index + 2}: Fee must be greater than 0")
+                    error_count += 1
+                    continue
+                
+                if room_id < 1 or room_id > 18:
+                    errors.append(f"Row {index + 2}: Room ID must be between 1 and 18")
+                    error_count += 1
+                    continue
+                
+                # Check if room exists and has capacity
+                room = Room.query.filter_by(room_number=room_id).first()
+                if not room:
+                    errors.append(f"Row {index + 2}: Room {room_id} does not exist")
+                    error_count += 1
+                    continue
+                
+                if room.current_occupancy >= room.capacity:
+                    errors.append(f"Row {index + 2}: Room {room_id} is at full capacity")
+                    error_count += 1
+                    continue
+                
+                # Check if student name already exists
+                existing_student = Student.query.filter_by(name=name).first()
+                if existing_student:
+                    errors.append(f"Row {index + 2}: Student '{name}' already exists")
+                    error_count += 1
+                    continue
+                
+                # Create new student
+                student = Student(
+                    name=name,
+                    fee=fee,
+                    room_id=room_id,
+                    status='active',
+                    fee_status='unpaid'
+                )
+                
+                db.session.add(student)
+                success_count += 1
+                
+            except (ValueError, TypeError) as e:
+                errors.append(f"Row {index + 2}: Invalid data format - {str(e)}")
+                error_count += 1
+                continue
+            except Exception as e:
+                errors.append(f"Row {index + 2}: Unexpected error - {str(e)}")
+                error_count += 1
+                continue
+        
+        # Commit all successful additions
+        if success_count > 0:
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully added {success_count} students',
+            'summary': {
+                'total_processed': len(df),
+                'success_count': success_count,
+                'error_count': error_count,
+                'errors': errors[:10]  # Limit errors to first 10
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Bulk upload failed: {str(e)}'}), 500
+
+# Download Excel template for bulk upload
+@app.route('/api/students/download-template', methods=['GET'])
+@login_required
+def download_student_template():
+    try:
+        # Create sample data
+        sample_data = [
+            {'name': 'John Doe', 'fee': 5000.00, 'room_id': 1},
+            {'name': 'Jane Smith', 'fee': 5000.00, 'room_id': 1},
+            {'name': 'Mike Johnson', 'fee': 5000.00, 'room_id': 1},
+            {'name': 'Sarah Wilson', 'fee': 6000.00, 'room_id': 15},
+            {'name': 'David Brown', 'fee': 6000.00, 'room_id': 15}
+        ]
+        
+        # Create DataFrame
+        df = pd.DataFrame(sample_data)
+        
+        # Create Excel file in memory
+        buffer = BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Students', index=False)
+            
+            # Get the workbook and worksheet
+            workbook = writer.book
+            worksheet = writer.sheets['Students']
+            
+            # Add instructions sheet
+            instructions_data = [
+                ['BULK STUDENT UPLOAD INSTRUCTIONS'],
+                [''],
+                ['REQUIRED COLUMNS:'],
+                ['name: Student full name (required)'],
+                ['fee: Monthly fee amount in Rs. (required, must be > 0)'],
+                ['room_id: Room number 1-18 (required)'],
+                [''],
+                ['ROOM CAPACITY:'],
+                ['Rooms 1-14: Maximum 3 students'],
+                ['Rooms 15-18: Maximum 4 students'],
+                [''],
+                ['VALIDATION RULES:'],
+                ['- Student names must be unique'],
+                ['- Room must exist and have available capacity'],
+                ['- Fee must be a positive number'],
+                ['- Room ID must be between 1 and 18'],
+                [''],
+                ['TIPS:'],
+                ['- Remove this instructions sheet before uploading'],
+                ['- Ensure all required columns are present'],
+                ['- Check room availability before assigning'],
+                ['- Use proper data types (text for names, numbers for fee and room_id)']
+            ]
+            
+            instructions_df = pd.DataFrame(instructions_data)
+            instructions_df.to_excel(writer, sheet_name='Instructions', index=False, header=False)
+            
+            # Format the main sheet
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name='student_bulk_upload_template.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Template generation failed: {str(e)}'}), 500
 
 
 if __name__ == '__main__':  

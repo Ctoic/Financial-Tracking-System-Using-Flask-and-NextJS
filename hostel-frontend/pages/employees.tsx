@@ -28,6 +28,7 @@ export default function Employees() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +51,11 @@ export default function Employees() {
     notes: ''
   });
 
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login');
@@ -59,6 +65,7 @@ export default function Employees() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchEmployees();
+      fetchAvailableMonths();
     }
   }, [isAuthenticated]);
 
@@ -67,8 +74,14 @@ export default function Employees() {
       const response = await axios.get('http://localhost:5051/api/employees', {
         withCredentials: true
       });
-      setEmployees(response.data.employees);
-      setError(null);
+      const data = response.data as { success: boolean; employees: Employee[] };
+      if (data.success) {
+        setEmployees(data.employees);
+        setFilteredEmployees(data.employees);
+        setError(null);
+      } else {
+        setError('Failed to fetch employees');
+      }
     } catch (error: any) {
       console.error('Error fetching employees:', error);
       setError(error.response?.data?.message || 'Failed to fetch employees');
@@ -82,11 +95,65 @@ export default function Employees() {
       const response = await axios.get(`http://localhost:5051/api/employees/${employeeId}/salaries`, {
         withCredentials: true
       });
-      setSalaryRecords(response.data.salary_records);
+      const data = response.data as { success: boolean; salary_records: SalaryRecord[] };
+      if (data.success) {
+        setSalaryRecords(data.salary_records);
+      } else {
+        setError('Failed to fetch salary records');
+      }
     } catch (error: any) {
       console.error('Error fetching salary records:', error);
       setError(error.response?.data?.message || 'Failed to fetch salary records');
     }
+  };
+
+  const fetchAvailableMonths = async () => {
+    try {
+      const response = await axios.get('http://localhost:5051/api/salaries/available-months', {
+        withCredentials: true
+      });
+      const data = response.data as { success: boolean; available_months: string[]; available_years: string[] };
+      if (data.success) {
+        setAvailableMonths(data.available_months);
+        setAvailableYears(data.available_years);
+      }
+    } catch (error: any) {
+      console.error('Error fetching available months:', error);
+    }
+  };
+
+  const handleMonthFilter = (monthYear: string) => {
+    setSelectedMonth(monthYear);
+    setSelectedYear('');
+    
+    if (!monthYear) {
+      setFilteredEmployees(employees);
+      return;
+    }
+    
+    // Filter employees based on selected month
+    const filtered = employees.filter(emp => {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      return monthYear === currentMonth;
+    });
+    setFilteredEmployees(filtered);
+  };
+
+  const handleYearFilter = (year: string) => {
+    setSelectedYear(year);
+    setSelectedMonth('');
+    
+    if (!year) {
+      setFilteredEmployees(employees);
+      return;
+    }
+    
+    // Filter employees based on selected year
+    const filtered = employees.filter(emp => {
+      const currentYear = new Date().getFullYear().toString();
+      return year === currentYear;
+    });
+    setFilteredEmployees(filtered);
   };
 
   const handleAddEmployee = async (e: React.FormEvent) => {
@@ -95,11 +162,14 @@ export default function Employees() {
       const response = await axios.post('http://localhost:5051/api/employees', newEmployee, {
         withCredentials: true
       });
+      const data = response.data as { success: boolean; message: string; employee_id?: number };
       
-      if (response.data.success) {
+      if (data.success) {
         setShowAddEmployee(false);
         setNewEmployee({ name: '', position: '', base_salary: '' });
         fetchEmployees();
+      } else {
+        setError(data.message || 'Failed to add employee');
       }
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to add employee');
@@ -116,14 +186,18 @@ export default function Employees() {
         newSalary,
         { withCredentials: true }
       );
+      const data = response.data as { success: boolean; message: string };
       
-      if (response.data.success) {
+      if (data.success) {
         setShowAddSalary(false);
         setNewSalary({ month_year: '', amount_paid: '', payment_method: 'cash', notes: '' });
         fetchEmployees();
+        fetchAvailableMonths();
         if (showSalaryHistory) {
           fetchSalaryRecords(selectedEmployee.id);
         }
+      } else {
+        setError(data.message || 'Failed to add salary payment');
       }
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to add salary payment');
@@ -137,9 +211,12 @@ export default function Employees() {
       const response = await axios.delete(`http://localhost:5051/api/employees/${employeeId}`, {
         withCredentials: true
       });
+      const data = response.data as { success: boolean; message: string };
       
-      if (response.data.success) {
+      if (data.success) {
         fetchEmployees();
+      } else {
+        setError(data.message || 'Failed to delete employee');
       }
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to delete employee');
@@ -153,11 +230,15 @@ export default function Employees() {
       const response = await axios.delete(`http://localhost:5051/api/salaries/${salaryId}`, {
         withCredentials: true
       });
+      const data = response.data as { success: boolean; message: string };
       
-      if (response.data.success) {
+      if (data.success) {
         if (selectedEmployee) {
           fetchSalaryRecords(selectedEmployee.id);
         }
+        fetchAvailableMonths();
+      } else {
+        setError(data.message || 'Failed to delete salary record');
       }
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to delete salary record');
@@ -203,6 +284,113 @@ export default function Employees() {
           </button>
         </div>
 
+        {/* Month/Year Filter and Salary Summary */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 mb-2">Salary Overview & Filtering</h2>
+              <div className="flex space-x-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Month</label>
+                  <select 
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    value={selectedMonth}
+                    onChange={(e) => handleMonthFilter(e.target.value)}
+                  >
+                    <option value="">All Months</option>
+                    {availableMonths.map((month) => {
+                      const [year, monthNum] = month.split('-');
+                      const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+                      return (
+                        <option key={month} value={month}>
+                          {date.toLocaleString('default', { month: 'long' })} {year}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Year</label>
+                  <select 
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    value={selectedYear}
+                    onChange={(e) => handleYearFilter(e.target.value)}
+                  >
+                    <option value="">All Years</option>
+                    {availableYears.map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <button
+                    onClick={() => {
+                      setSelectedMonth('');
+                      setSelectedYear('');
+                      setFilteredEmployees(employees);
+                    }}
+                    className="mt-6 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md text-sm"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Current Month Total</div>
+              <div className="text-2xl font-bold text-blue-600">
+                Rs. {employees.reduce((sum, emp) => sum + emp.current_month_salary_paid, 0).toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-500">
+                {employees.filter(emp => emp.current_month_salary_status === 'paid').length} of {employees.length} employees paid
+              </div>
+              {selectedMonth && (
+                <div className="text-sm text-gray-500 mt-2">
+                  Filtered: {selectedMonth}
+                </div>
+              )}
+              {selectedYear && (
+                <div className="text-sm text-gray-500 mt-2">
+                  Filtered: {selectedYear}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Salary Summary Table */}
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">Monthly Salary Summary</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="text-blue-800 font-medium text-sm">Total Employees</h4>
+                <p className="text-2xl font-bold text-blue-600">{employees.length}</p>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4">
+                <h4 className="text-green-800 font-medium text-sm">Paid This Month</h4>
+                <p className="text-2xl font-bold text-green-600">
+                  {employees.filter(emp => emp.current_month_salary_status === 'paid').length}
+                </p>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-4">
+                <h4 className="text-yellow-800 font-medium text-sm">Unpaid This Month</h4>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {employees.filter(emp => emp.current_month_salary_status === 'unpaid').length}
+                </p>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4">
+                <h4 className="text-purple-800 font-medium text-sm">Total Salaries</h4>
+                <p className="text-2xl font-bold text-purple-600">
+                  Rs. {employees.reduce((sum, emp) => sum + emp.current_month_salary_paid, 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Employees Table */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -233,7 +421,7 @@ export default function Employees() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {employees.map((employee) => (
+                {filteredEmployees.map((employee) => (
                   <tr key={employee.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{employee.name}</div>

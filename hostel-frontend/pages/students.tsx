@@ -15,6 +15,21 @@ interface Student {
   fee_status: string;
 }
 
+interface StudentsMeta {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+interface StudentsResponse {
+  students?: Student[];
+  meta?: StudentsMeta;
+  error?: string;
+}
+
 export default function Students() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
@@ -29,6 +44,11 @@ export default function Students() {
     room_id: '',
   });
   const [rooms, setRooms] = useState<any[]>([]);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  const [meta, setMeta] = useState<StudentsMeta | undefined>(undefined);
 
   // Bulk upload states
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -47,37 +67,42 @@ export default function Students() {
       fetchStudents();
       fetchRooms();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, page, perPage]);
 
   const fetchStudents = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get<{students?: Student[], error?: string}>('http://localhost:5051/api/students', {
-        withCredentials: true
-      });
-      console.log('Students API Response:', response.data);
-      
-      if (response.data.error) {
-        throw new Error(response.data.error);
+      const response = await axios.get<StudentsResponse>(
+        'http://localhost:5051/api/students',
+        {
+          withCredentials: true,
+          params: { page, per_page: perPage },
+        }
+      );
+
+      const data = response.data;
+      if (data.error) {
+        throw new Error(data.error);
       }
-      
-      const studentsData = response.data.students || [];
-      console.log('Processed students data:', studentsData);
-      
+
+      const studentsData = data.students || [];
       if (!Array.isArray(studentsData)) {
         console.error('Students data is not an array:', studentsData);
         setError('Invalid data format received from server');
         setStudents([]);
+        setMeta(undefined);
         return;
       }
-      
+
       setStudents(studentsData);
+      setMeta(data.meta);
     } catch (error) {
       console.error('Error fetching students:', error);
       setError('Failed to fetch students');
       toast.error('Failed to fetch students');
       setStudents([]);
+      setMeta(undefined);
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +172,13 @@ export default function Students() {
           withCredentials: true
         });
         toast.success('Student deleted successfully');
-        fetchStudents();
+        // If we just deleted the last item on the page, move back a page on next fetch
+        if (students.length === 1 && page > 1) {
+          setPage(page - 1);
+        } else {
+          fetchStudents();
+        }
+        return;
       } catch (error: any) {
         console.error('Error deleting student:', error);
         let errorMessage = 'Failed to delete student';
@@ -266,6 +297,48 @@ export default function Students() {
         <div className="flex items-center justify-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
         </div>
+
+        {/* Pagination Controls */}
+        {meta && (
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Rows per page:</span>
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  setPage(1);
+                  setPerPage(parseInt(e.target.value));
+                }}
+                className="border rounded px-2 py-1"
+              >
+                {[10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Page {meta.page} of {Math.max(meta.total_pages, 1)}
+              </span>
+              <div className="space-x-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={!meta.has_prev}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={!meta.has_next}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </Layout>
     );
   }

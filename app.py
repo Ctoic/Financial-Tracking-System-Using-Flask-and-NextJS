@@ -1102,9 +1102,9 @@ def get_fee_records():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-# -----------------------------
+# -----------------------------------
 # Blueprints: Employees & Salaries
-# -----------------------------
+# ---------------------------------
 
 employees_bp = Blueprint("employees", __name__, url_prefix="/api")
 salaries_bp = Blueprint("salaries", __name__, url_prefix="/api")

@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      FLASK_APP: app:create_app
+      FLASK_ENV: production
+      PORT: 5051
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/hostel.db}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      WTF_CSRF_SECRET_KEY: ${WTF_CSRF_SECRET_KEY:-change-me-too}
+      UPLOAD_FOLDER: static/uploads
+    command: >
+      sh -c "FLASK_SKIP_BOOTSTRAP=1 flask db upgrade && gunicorn --bind 0.0.0.0:5051 'app:create_app()'"
+    volumes:
+      - backend-data:/data
+      - uploads:/app/static/uploads
+    ports:
+      - "5051:5051"
+
+  frontend:
+    build:
+      context: ./hostel-frontend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5051}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  backend-data:
+  uploads:

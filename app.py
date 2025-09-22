@@ -114,6 +114,10 @@ def create_app(config_class: type = Config) -> Flask:
     def server_error(e):
         return jsonify({"success": False, "message": str(e)}), 500
 
+    if not os.environ.get("FLASK_SKIP_BOOTSTRAP"):
+        with app.app_context():
+            bootstrap_data()
+
     return app
 
 

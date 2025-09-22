@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+instance/
+venv/
+.venv/
+.env
+.env.*
+.git
+.gitignore
+migrations/README
+migrations/**/__pycache__
+hostel-frontend/node_modules
+hostel-frontend/.next
+hostel-frontend/out
+Screenshot from 2025-04-20 16-15-48.png

@@ -17,6 +17,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
+interface AuthResponse {
+  user?: User;
+  message?: string;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -28,11 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if user is logged in on mount
     const checkAuth = async () => {
       try {
-        const response = await axios.get('http://localhost:5051/check-auth', {
+        const { data } = await axios.get<AuthResponse>(`${API_BASE_URL}/check-auth`, {
           withCredentials: true
         });
-        if (response.data.user) {
-          setUser(response.data.user);
+        if (data.user) {
+          setUser(data.user);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -46,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     try {
-      console.log('Attempting login to:', 'http://localhost:5051/login');
-      const response = await axios.post('http://localhost:5051/login', {
+      console.log('Attempting login to:', `${API_BASE_URL}/login`);
+      const { data } = await axios.post<AuthResponse>(`${API_BASE_URL}/login`, {
         username,
         password
       }, {
@@ -57,10 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
       
-      console.log('Login response:', response.data);
+      console.log('Login response:', data);
       
-      if (response.data.user) {
-        setUser(response.data.user);
+      if (data.user) {
+        setUser(data.user);
         router.push('/dashboard');
       } else {
         throw new Error('No user data in response');
@@ -73,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await axios.post('http://localhost:5051/logout', {}, {
+      await axios.post(`${API_BASE_URL}/logout`, {}, {
         withCredentials: true
       });
       setUser(null);

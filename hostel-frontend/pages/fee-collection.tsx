@@ -59,6 +59,17 @@ interface FeeData {
   monthly_totals: { month: string; total: number }[];
 }
 
+interface FeeCollectionResponse {
+  success: boolean;
+  message?: string;
+}
+
+interface StudentsResponse {
+  students?: Student[];
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051';
+
 export default function FeeCollection() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -102,13 +113,16 @@ export default function FeeCollection() {
   const fetchFeeData = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`http://localhost:5051/api/fees?month=${selectedMonth}&year=${selectedYear}`, {
-        withCredentials: true,
-        headers: {
-          'Accept': 'application/json'
+      const { data } = await axios.get<FeeData>(
+        `${API_BASE_URL}/api/fees?month=${selectedMonth}&year=${selectedYear}`,
+        {
+          withCredentials: true,
+          headers: {
+            Accept: 'application/json',
+          },
         }
-      });
-      setFeeData(response.data);
+      );
+      setFeeData(data ?? null);
     } catch (error) {
       console.error('Error fetching fee data:', error);
       toast.error('Failed to fetch fee data');
@@ -119,10 +133,13 @@ export default function FeeCollection() {
 
   const fetchStudents = async () => {
     try {
-      const response = await axios.get('http://localhost:5051/students', {
-        withCredentials: true
-      });
-      setStudents(response.data.students || []);
+      const { data } = await axios.get<StudentsResponse>(
+        `${API_BASE_URL}/students`,
+        {
+          withCredentials: true,
+        }
+      );
+      setStudents(data.students ?? []);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast.error('Failed to fetch students');
@@ -138,22 +155,26 @@ export default function FeeCollection() {
         date: formData.date
       };
 
-      const response = await axios.post('http://localhost:5051/collect-fee', formattedData, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+      const { data } = await axios.post<FeeCollectionResponse>(
+        `${API_BASE_URL}/collect-fee`,
+        formattedData,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
         }
-      });
-      
-      if (response.data.success) {
-        toast.success(response.data.message);
+      );
+
+      if (data.success) {
+        toast.success(data.message || 'Fee recorded successfully');
         setIsModalOpen(false);
         fetchFeeData();
         fetchStudents();
         resetForm();
       } else {
-        toast.error(response.data.message || 'Failed to record fee payment');
+        toast.error(data.message || 'Failed to record fee payment');
       }
     } catch (error: any) {
       console.error('Error recording fee payment:', error);

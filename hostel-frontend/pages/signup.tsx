@@ -4,6 +4,13 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
+interface SignupResponse {
+  success: boolean;
+  message?: string;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051';
+
 export default function Signup() {
   const [formData, setFormData] = useState({
     name: '',
@@ -34,7 +41,7 @@ export default function Signup() {
     try {
       // First check if backend is accessible
       try {
-        await axios.get('http://localhost:5051/');
+        await axios.get(`${API_BASE_URL}/`);
       } catch (error) {
         console.error('Backend connection error:', error);
         toast.error('Cannot connect to the server. Please ensure the backend is running.');
@@ -42,20 +49,24 @@ export default function Signup() {
         return;
       }
 
-      const response = await axios.post('http://localhost:5051/signup', {
-        name: formData.name,
-        email: formData.email,
-        username: formData.username,
-        password: formData.password
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
+      const { data } = await axios.post<SignupResponse>(
+        `${API_BASE_URL}/signup`,
+        {
+          name: formData.name,
+          email: formData.email,
+          username: formData.username,
+          password: formData.password,
         },
-        withCredentials: true
-      });
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
+        }
+      );
 
-      if (response.data.success) {
-        toast.success('Account created successfully! Please login.');
+      if (data.success) {
+        toast.success(data.message || 'Account created successfully! Please login.');
         router.push('/login');
       }
     } catch (error: any) {

@@ -41,6 +41,11 @@ interface DashboardData {
   unpaid: number;
   total_salaries_current: number;
   total_salaries_previous: number;
+  // Rooms availability (optional)
+  rooms_total?: number;
+  rooms_available?: number;
+  rooms_occupied?: number;
+  rooms_by_type?: { type: string; available: number; total: number }[];
 }
 
 const defaultDashboardData: DashboardData = {
@@ -56,8 +61,27 @@ const defaultDashboardData: DashboardData = {
   partially_paid: 0,
   unpaid: 0,
   total_salaries_current: 0,
-  total_salaries_previous: 0
+  total_salaries_previous: 0,
+  // Rooms availability defaults
+  rooms_total: 0,
+  rooms_available: 0,
+  rooms_occupied: 0,
+  rooms_by_type: []
 };
+
+interface RoomsAvailability {
+  rooms_total?: number;
+  total_rooms?: number;
+  rooms_available?: number;
+  available_rooms?: number;
+  rooms_occupied?: number;
+  occupied_rooms?: number;
+  rooms_by_type?: { type?: string; name?: string; available?: number; total?: number }[];
+  by_type?: { type?: string; name?: string; available?: number; total?: number }[];
+  types?: { type?: string; name?: string; available?: number; total?: number }[];
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051';
 
 export default function Dashboard() {
   const { isAuthenticated, loading } = useAuth();
@@ -78,11 +102,64 @@ export default function Dashboard() {
       
       setIsLoading(true);
       try {
-        const response = await axios.get('http://localhost:5051/api/dashboard', {
-          withCredentials: true
-        });
-        setDashboardData(response.data);
-        setError(null);
+        const { data: baseData } = await axios.get<DashboardData>(
+          `${API_BASE_URL}/api/dashboard`,
+          {
+            withCredentials: true,
+          }
+        );
+        setDashboardData(baseData ?? defaultDashboardData);
+
+        // Try to augment with rooms availability (optional endpoint)
+        try {
+          const { data: roomsRaw } = await axios.get<RoomsAvailability>(
+            `${API_BASE_URL}/api/rooms/availability`,
+            {
+              withCredentials: true,
+            }
+          );
+          const raw: RoomsAvailability = roomsRaw || {};
+
+          // Normalize possible keys and compute from by_type if present
+          const byTypeArr = (raw.rooms_by_type || raw.by_type || raw.types || []) ?? [];
+          const extractByType = () =>
+            Array.isArray(byTypeArr)
+              ? byTypeArr.map(item => ({
+                  type: item.type ?? item.name ?? 'unknown',
+                  available: Number(item.available ?? 0),
+                  total: Number(item.total ?? 0),
+                }))
+              : [];
+
+          const normalizedByType = extractByType();
+          const sum = (arr: { available: number; total: number }[], key: 'available' | 'total') =>
+            Array.isArray(arr) ? arr.reduce((s, i) => s + (Number(i?.[key]) || 0), 0) : 0;
+
+          const normalized_total =
+            raw.rooms_total ?? raw.total_rooms ?? (normalizedByType.length ? sum(normalizedByType, 'total') : undefined);
+          const normalized_available =
+            raw.rooms_available ?? raw.available_rooms ??
+            (normalizedByType.length ? sum(normalizedByType, 'available') : undefined);
+          const normalized_occupied = raw.rooms_occupied ?? raw.occupied_rooms ?? (
+            normalized_total != null && normalized_available != null
+              ? Math.max(Number(normalized_total) - Number(normalized_available), 0)
+              : undefined
+          );
+
+          setDashboardData(prev => ({
+            ...prev,
+            rooms_total: Number(normalized_total ?? prev.rooms_total ?? 0),
+            rooms_available: Number(normalized_available ?? prev.rooms_available ?? 0),
+            rooms_occupied: Number(
+              normalized_occupied ??
+              prev.rooms_occupied ??
+              Math.max(Number(normalized_total ?? 0) - Number(normalized_available ?? 0), 0)
+            ),
+            rooms_by_type: normalizedByType.length ? normalizedByType : (prev.rooms_by_type ?? []),
+          }));
+        } catch (_e) {
+          // Silently ignore rooms availability errors to avoid blocking the dashboard
+        }
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
         setError(error.response?.data?.error || 'Failed to fetch dashboard data');
@@ -158,6 +235,30 @@ export default function Dashboard() {
     ],
   };
 
+  // Rooms availability (derived values)
+  const roomsByType = dashboardData.rooms_by_type ?? [];
+  const sumByType = (arr: { total?: number; available?: number }[]) => ({
+    total: arr.reduce((s, i) => s + (Number(i?.total) || 0), 0),
+    available: arr.reduce((s, i) => s + (Number(i?.available) || 0), 0),
+  });
+  const derived = roomsByType.length ? sumByType(roomsByType as any) : { total: 0, available: 0 };
+
+  const roomsTotal = (dashboardData.rooms_total ?? derived.total ?? 0) as number;
+  const roomsAvailable = (dashboardData.rooms_available ?? derived.available ?? 0) as number;
+  const roomsOccupied = (dashboardData.rooms_occupied ?? Math.max(roomsTotal - roomsAvailable, 0)) as number;
+  const occupancyPct = roomsTotal > 0 ? Math.round((roomsOccupied / roomsTotal) * 100) : 0;
+
+  const roomsPieData = {
+    labels: ['Available', 'Occupied'],
+    datasets: [
+      {
+        data: [roomsAvailable, roomsOccupied],
+        backgroundColor: ['rgba(34, 197, 94, 0.5)', 'rgba(239, 68, 68, 0.5)'],
+        borderColor: ['rgba(34, 197, 94, 1)', 'rgba(239, 68, 68, 1)'],
+      },
+    ],
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -199,6 +300,78 @@ export default function Dashboard() {
               Salaries: Rs{dashboardData.total_salaries_current} | Other: Rs{dashboardData.current_month_expenses - dashboardData.total_salaries_current}
             </p>
           </div>
+        </div>
+
+        {/* Rooms Availability */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Rooms Availability</h3>
+          {(roomsTotal > 0 || roomsByType.length > 0) ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-gray-700 text-sm font-medium">Total Rooms</h4>
+                    <p className="text-2xl font-bold text-gray-900">{roomsTotal}</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <h4 className="text-green-800 text-sm font-medium">Available</h4>
+                    <p className="text-2xl font-bold text-green-600">{roomsAvailable}</p>
+                  </div>
+                  <div className="bg-red-50 rounded-lg p-4">
+                    <h4 className="text-red-800 text-sm font-medium">Occupied</h4>
+                    <p className="text-2xl font-bold text-red-600">{roomsOccupied}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-gray-700 font-medium">Occupancy</span>
+                    <span className="text-sm text-gray-500">{occupancyPct}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-2 rounded">
+                    <div className="h-2 rounded bg-indigo-600" style={{ width: `${occupancyPct}%` }}></div>
+                  </div>
+                </div>
+
+                {roomsByType.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available / Total</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Occupancy</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {roomsByType.map((t, idx) => {
+                          const tOccupied = Math.max((t.total ?? 0) - (t.available ?? 0), 0);
+                          const tPct = (t.total ?? 0) > 0 ? Math.round((tOccupied / (t.total ?? 0)) * 100) : 0;
+                          return (
+                            <tr key={idx}>
+                              <td className="px-4 py-2 text-sm text-gray-900">{t.type}</td>
+                              <td className="px-4 py-2 text-sm text-gray-700">{t.available} / {t.total}</td>
+                              <td className="px-4 py-2 text-sm text-gray-700">{tPct}%</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-lg">
+                <Pie data={roomsPieData} />
+              </div>
+            </div>
+          ) : (
+            (() => { if (process?.env?.NEXT_PUBLIC_DEBUG) console.warn('Rooms Availability: no data (roomsTotal=0 and roomsByType empty)'); return null; })()
+          )
+            }
+          {!(roomsTotal > 0 || roomsByType.length > 0) && (
+            <p className="text-gray-500">No room data available.</p>
+          )}
         </div>
 
         {/* Current Month Salary Details */}

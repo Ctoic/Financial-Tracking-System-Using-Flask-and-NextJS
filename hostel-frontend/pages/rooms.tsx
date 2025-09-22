@@ -3,7 +3,6 @@ import Layout from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import toast from 'react-hot-toast';
 
 interface Room {
   id: number;
@@ -16,6 +15,14 @@ interface Room {
     picture: string;
   }[];
 }
+
+interface RoomsResponse {
+  error?: string;
+  message?: string;
+  rooms?: Room[];
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051';
 
 export default function Rooms() {
   const { isAuthenticated, loading } = useAuth();
@@ -40,16 +47,16 @@ export default function Rooms() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get('http://localhost:5051/api/rooms', {
-        withCredentials: true
+      const { data } = await axios.get<RoomsResponse>(`${API_BASE_URL}/api/rooms`, {
+        withCredentials: true,
       });
-      console.log('Rooms API Response:', response.data);
-      
-      if (response.data.error) {
-        throw new Error(response.data.error);
+      console.log('Rooms API Response:', data);
+
+      if (data?.error) {
+        throw new Error(data.error);
       }
       
-      let roomsData = response.data.rooms || [];
+      let roomsData = data?.rooms || [];
       console.log('Processed rooms data:', roomsData);
       
       if (!Array.isArray(roomsData)) {
@@ -82,6 +89,13 @@ export default function Rooms() {
 
   const getRoomCapacityColor = (capacity: number) => {
     return capacity === 3 ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
+  };
+
+  const getStudentImage = (picture?: string) => {
+    if (!picture) {
+      return '/default-avatar.png';
+    }
+    return `${API_BASE_URL}/static/uploads/${picture}`;
   };
 
   if (loading || isLoading) {
@@ -156,7 +170,7 @@ export default function Rooms() {
                         <div className="flex-shrink-0">
                           <img
                             className="h-8 w-8 rounded-full"
-                            src={student.picture ? `http://localhost:5051/static/uploads/${student.picture}` : '/default-avatar.png'}
+                            src={getStudentImage(student.picture)}
                             alt={student.name || 'Student'}
                           />
                         </div>

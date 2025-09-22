@@ -49,6 +49,13 @@ interface ExpenseData {
   prev_year: number;
 }
 
+interface ExpenseMutationResponse {
+  success: boolean;
+  message?: string;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051';
+
 export default function Expenses() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -90,13 +97,16 @@ export default function Expenses() {
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`http://localhost:5051/api/expenses?month=${selectedMonth}&year=${selectedYear}`, {
-        withCredentials: true,
-        headers: {
-          'Accept': 'application/json'
+      const { data } = await axios.get<ExpenseData>(
+        `${API_BASE_URL}/api/expenses?month=${selectedMonth}&year=${selectedYear}`,
+        {
+          withCredentials: true,
+          headers: {
+            Accept: 'application/json',
+          },
         }
-      });
-      setExpenseData(response.data);
+      );
+      setExpenseData(data ?? null);
     } catch (error) {
       console.error('Error fetching expenses:', error);
       toast.error('Failed to fetch expenses');
@@ -107,16 +117,16 @@ export default function Expenses() {
 
   const handleDownloadReport = async () => {
     try {
-      const response = await axios.get(
-        `http://localhost:5051/export_pdf/${selectedYear}/${selectedMonth}`,
+      const { data } = await axios.get<ArrayBuffer>(
+        `${API_BASE_URL}/export_pdf/${selectedYear}/${selectedMonth}`,
         {
           withCredentials: true,
-          responseType: 'blob'
+          responseType: 'arraybuffer'
         }
       );
       
       // Create a blob from the PDF data
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const blob = new Blob([data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       
       // Create a temporary link and trigger the download
@@ -149,21 +159,25 @@ export default function Expenses() {
 
       console.log('Submitting formatted data:', formattedData);
 
-      const response = await axios.post('http://localhost:5051/api/expenses', formattedData, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+      const { data } = await axios.post<ExpenseMutationResponse>(
+        `${API_BASE_URL}/api/expenses`,
+        formattedData,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
         }
-      });
+      );
       
-      if (response.data.success) {
-        toast.success(response.data.message);
+      if (data.success) {
+        toast.success(data.message || 'Expense added successfully');
         setIsModalOpen(false);
         fetchExpenses();
         resetForm();
       } else {
-        toast.error(response.data.message || 'Failed to add expense');
+        toast.error(data.message || 'Failed to add expense');
       }
     } catch (error: any) {
       console.error('Error adding expense:', error);
@@ -179,18 +193,21 @@ export default function Expenses() {
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
       try {
-        const response = await axios.delete(`http://localhost:5051/api/expenses?id=${id}`, {
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json'
+        const { data } = await axios.delete<ExpenseMutationResponse>(
+          `${API_BASE_URL}/api/expenses?id=${id}`,
+          {
+            withCredentials: true,
+            headers: {
+              Accept: 'application/json',
+            },
           }
-        });
+        );
         
-        if (response.data.success) {
-          toast.success(response.data.message);
+        if (data.success) {
+          toast.success(data.message || 'Expense deleted successfully');
           fetchExpenses();
         } else {
-          toast.error(response.data.message || 'Failed to delete expense');
+          toast.error(data.message || 'Failed to delete expense');
         }
       } catch (error: any) {
         console.error('Error deleting expense:', error);

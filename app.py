@@ -31,6 +31,7 @@ from models import (
     FeeRecord,
     Employee,
     SalaryRecord,
+    HostelRegistration,
 )
 
 # -----------------------------
@@ -68,7 +69,7 @@ def create_app(config_class: type = Config) -> Flask:
     # CORS (kept behavior but centralized here)
     CORS(
         app,
-        origins=["http://localhost:3000"],
+        origins=["http://localhost:3000", "http://localhost:3001"],
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[
@@ -104,6 +105,7 @@ def create_app(config_class: type = Config) -> Flask:
     app.register_blueprint(legacy_bp)
     app.register_blueprint(employees_bp)
     app.register_blueprint(salaries_bp)
+    app.register_blueprint(registration_bp)
 
     # Basic JSON error handlers (optional best-practice)
     @app.errorhandler(404)
@@ -1387,6 +1389,222 @@ def get_available_salary_months():
         available_months = [month[0] for month in month_years]
         available_years = [year[0] for year in years]
         return jsonify({"success": True, "available_months": available_months, "available_years": available_years})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# -----------------------------
+# Blueprint: Registration
+# -----------------------------
+
+registration_bp = Blueprint("registration", __name__, url_prefix="/api")
+
+
+@registration_bp.route("/registration", methods=["POST"])
+def submit_registration():
+    """Submit a new hostel registration request (public endpoint)"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = [
+            "name", "email", "phone", "address", "emergency_contact", 
+            "emergency_contact_name", "university", "course", "year_of_study", "expected_duration"
+        ]
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
+            return jsonify({
+                "success": False, 
+                "message": f"Missing required fields: {', '.join(missing_fields)}"
+            }), 400
+        
+        # Check if email already exists
+        existing_registration = HostelRegistration.query.filter_by(email=data["email"]).first()
+        if existing_registration:
+            return jsonify({
+                "success": False, 
+                "message": "A registration with this email already exists"
+            }), 400
+        
+        # Create new registration
+        registration = HostelRegistration(
+            name=data["name"],
+            email=data["email"],
+            phone=data["phone"],
+            address=data["address"],
+            emergency_contact=data["emergency_contact"],
+            emergency_contact_name=data["emergency_contact_name"],
+            university=data["university"],
+            course=data["course"],
+            year_of_study=data["year_of_study"],
+            expected_duration=data["expected_duration"],
+            special_requirements=data.get("special_requirements", ""),
+            status="pending"
+        )
+        
+        db.session.add(registration)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Registration submitted successfully! We will contact you soon.",
+            "registration_id": registration.id
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@registration_bp.route("/admin/registrations", methods=["GET"])
+@login_required
+def get_registrations():
+    """Get all registration requests (admin only)"""
+    try:
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 10, type=int)
+        status_filter = request.args.get("status", "all")
+        
+        # Clamp per_page to sane bounds
+        if per_page <= 0:
+            per_page = 10
+        per_page = min(per_page, 100)
+        
+        # Build query
+        query = HostelRegistration.query
+        if status_filter != "all":
+            query = query.filter_by(status=status_filter)
+        
+        total = query.count()
+        registrations = (
+            query.order_by(HostelRegistration.submitted_at.desc())
+            .limit(per_page)
+            .offset((page - 1) * per_page)
+            .all()
+        )
+        
+        registrations_data = []
+        for reg in registrations:
+            admin_user = Admin.query.get(reg.contacted_by) if reg.contacted_by else None
+            registrations_data.append({
+                "id": reg.id,
+                "name": reg.name,
+                "email": reg.email,
+                "phone": reg.phone,
+                "address": reg.address,
+                "emergency_contact": reg.emergency_contact,
+                "emergency_contact_name": reg.emergency_contact_name,
+                "university": reg.university,
+                "course": reg.course,
+                "year_of_study": reg.year_of_study,
+                "expected_duration": reg.expected_duration,
+                "special_requirements": reg.special_requirements,
+                "status": reg.status,
+                "submitted_at": reg.submitted_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "admin_notes": reg.admin_notes,
+                "contacted_at": reg.contacted_at.strftime("%Y-%m-%d %H:%M:%S") if reg.contacted_at else None,
+                "contacted_by": admin_user.name if admin_user else None
+            })
+        
+        total_pages = (total + per_page - 1) // per_page
+        meta = {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1,
+        }
+        
+        return jsonify({"registrations": registrations_data, "meta": meta})
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@registration_bp.route("/admin/registrations/<int:registration_id>", methods=["PUT"])
+@login_required
+def update_registration_status(registration_id):
+    """Update registration status and add admin notes (admin only)"""
+    try:
+        registration = HostelRegistration.query.get_or_404(registration_id)
+        data = request.get_json()
+        
+        if "status" in data:
+            valid_statuses = ["pending", "contacted", "approved", "rejected"]
+            if data["status"] not in valid_statuses:
+                return jsonify({
+                    "success": False, 
+                    "message": f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+                }), 400
+            registration.status = data["status"]
+            
+            # Update contacted info if status is being changed to contacted
+            if data["status"] == "contacted":
+                registration.contacted_at = datetime.utcnow()
+                registration.contacted_by = current_user.id
+        
+        if "admin_notes" in data:
+            registration.admin_notes = data["admin_notes"]
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Registration updated successfully"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@registration_bp.route("/admin/registrations/<int:registration_id>", methods=["DELETE"])
+@login_required
+def delete_registration(registration_id):
+    """Delete a registration request (admin only)"""
+    try:
+        registration = HostelRegistration.query.get_or_404(registration_id)
+        db.session.delete(registration)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Registration deleted successfully"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@registration_bp.route("/admin/registrations/stats", methods=["GET"])
+@login_required
+def get_registration_stats():
+    """Get registration statistics (admin only)"""
+    try:
+        total_registrations = HostelRegistration.query.count()
+        pending_count = HostelRegistration.query.filter_by(status="pending").count()
+        contacted_count = HostelRegistration.query.filter_by(status="contacted").count()
+        approved_count = HostelRegistration.query.filter_by(status="approved").count()
+        rejected_count = HostelRegistration.query.filter_by(status="rejected").count()
+        
+        # Recent registrations (last 7 days)
+        from datetime import timedelta
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        recent_count = HostelRegistration.query.filter(
+            HostelRegistration.submitted_at >= week_ago
+        ).count()
+        
+        return jsonify({
+            "total_registrations": total_registrations,
+            "pending_count": pending_count,
+            "contacted_count": contacted_count,
+            "approved_count": approved_count,
+            "rejected_count": rejected_count,
+            "recent_count": recent_count
+        })
+        
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 

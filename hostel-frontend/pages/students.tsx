@@ -37,6 +37,7 @@ export default function Students() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -69,8 +70,12 @@ export default function Students() {
     }
   }, [isAuthenticated, page, perPage]);
 
-  const fetchStudents = async () => {
-    setIsLoading(true);
+  const fetchStudents = async (isPagination = false) => {
+    if (isPagination) {
+      setIsPaginationLoading(true);
+    } else {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const response = await axios.get<StudentsResponse>(
@@ -104,7 +109,11 @@ export default function Students() {
       setStudents([]);
       setMeta(undefined);
     } finally {
-      setIsLoading(false);
+      if (isPagination) {
+        setIsPaginationLoading(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -297,48 +306,6 @@ export default function Students() {
         <div className="flex items-center justify-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
         </div>
-
-        {/* Pagination Controls */}
-        {meta && (
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">Rows per page:</span>
-              <select
-                value={perPage}
-                onChange={(e) => {
-                  setPage(1);
-                  setPerPage(parseInt(e.target.value));
-                }}
-                className="border rounded px-2 py-1"
-              >
-                {[10, 20, 50, 100].map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Page {meta.page} of {Math.max(meta.total_pages, 1)}
-              </span>
-              <div className="space-x-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={!meta.has_prev}
-                  className="px-3 py-1 border rounded disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={!meta.has_next}
-                  className="px-3 py-1 border rounded disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </Layout>
     );
   }
@@ -506,6 +473,98 @@ export default function Students() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {meta && (
+          <div className="bg-white px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">Rows per page:</span>
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    setPage(1);
+                    setPerPage(parseInt(e.target.value));
+                  }}
+                  disabled={isPaginationLoading}
+                  className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {[10, 20, 50, 100].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <span className="text-sm text-gray-500">
+                  Showing {((meta.page - 1) * meta.per_page) + 1} to {Math.min(meta.page * meta.per_page, meta.total)} of {meta.total} students
+                </span>
+                {isPaginationLoading && (
+                  <div className="flex items-center space-x-1">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                    <span className="text-sm text-gray-500">Loading...</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">
+                  Page {meta.page} of {Math.max(meta.total_pages, 1)}
+                </span>
+                
+                {/* Page Navigation */}
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setPage(1)}
+                    disabled={!meta.has_prev || isPaginationLoading}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    title="First page"
+                  >
+                    ««
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={!meta.has_prev || isPaginationLoading}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    Previous
+                  </button>
+                  
+                  {/* Page number input */}
+                  <div className="flex items-center space-x-1">
+                    <span className="text-sm text-gray-600">Go to:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={meta.total_pages}
+                      value={meta.page}
+                      onChange={(e) => {
+                        const newPage = parseInt(e.target.value);
+                        if (newPage >= 1 && newPage <= meta.total_pages) {
+                          setPage(newPage);
+                        }
+                      }}
+                      disabled={isPaginationLoading}
+                      className="w-16 px-2 py-1 border border-gray-300 rounded-md text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={!meta.has_next || isPaginationLoading}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    Next
+                  </button>
+                  <button
+                    onClick={() => setPage(meta.total_pages)}
+                    disabled={!meta.has_next || isPaginationLoading}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    title="Last page"
+                  >
+                    »»
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
                 {/* Add/Edit Student Modal */}
         {isModalOpen && (

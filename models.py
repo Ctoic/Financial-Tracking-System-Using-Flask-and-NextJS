@@ -158,3 +158,26 @@ class SalaryRecord(db.Model):
     
     def __repr__(self):
         return f'<SalaryRecord {self.employee.name} - {self.month_year} - Rs{self.amount_paid}>'
+
+# HostelRegistration Model
+class HostelRegistration(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    emergency_contact = db.Column(db.String(20), nullable=False)
+    emergency_contact_name = db.Column(db.String(100), nullable=False)
+    university = db.Column(db.String(100), nullable=False)
+    course = db.Column(db.String(100), nullable=False)
+    year_of_study = db.Column(db.String(20), nullable=False)
+    expected_duration = db.Column(db.String(50), nullable=False)
+    special_requirements = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, contacted
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    admin_notes = db.Column(db.Text)
+    contacted_at = db.Column(db.DateTime)
+    contacted_by = db.Column(db.Integer, db.ForeignKey('admin.id'))
+    
+    def __repr__(self):
+        return f'<HostelRegistration {self.name} - {self.status}>'

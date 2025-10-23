@@ -1,10 +1,11 @@
 import { useRouter } from 'next/router';
 import { Inter } from "next/font/google";
 import { motion } from "framer-motion";
-import { Building2, Users, KeySquare, ChartBar, Sparkles, ShieldCheck, Zap } from "lucide-react";
+import { Building2, Users, KeySquare, ChartBar, Sparkles, ShieldCheck, Zap, FileText } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import HostelRegistrationForm from "../components/HostelRegistrationForm";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -119,6 +120,43 @@ function Features() {
             </motion.div>
           ))}
         </div>
+      </div>
+    </SectionContainer>
+  );
+}
+
+function RegistrationSection() {
+  return (
+    <SectionContainer>
+      <div className="py-16 md:py-24">
+        <div className="mx-auto max-w-3xl text-center mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="flex items-center justify-center mb-4">
+              <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                <FileText className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+              Apply for Hostel Accommodation
+            </h2>
+            <p className="mt-4 text-gray-700 dark:text-gray-300">
+              Ready to join our hostel community? Fill out the registration form below and we'll get back to you with availability and next steps.
+            </p>
+          </motion.div>
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <HostelRegistrationForm />
+        </motion.div>
       </div>
     </SectionContainer>
   );
@@ -242,6 +280,7 @@ export default function Home() {
     <div className={`${inter.className} min-h-screen bg-white dark:bg-gray-950`}>
       <Hero />
       <Features />
+      <RegistrationSection />
       <Stats />
       <Testimonials />
       <CTA />

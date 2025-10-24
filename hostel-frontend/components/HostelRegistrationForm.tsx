@@ -61,7 +61,7 @@ export default function HostelRegistrationForm() {
     console.log('Submitting registration with data:', formData);
 
     try {
-      const response = await fetch('http://localhost:5051/api/registration', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/registration`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

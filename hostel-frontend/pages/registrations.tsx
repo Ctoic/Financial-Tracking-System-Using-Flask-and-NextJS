@@ -84,7 +84,7 @@ export default function Registrations() {
     try {
       setLoadingData(true);
       const response = await fetch(
-        `http://localhost:5051/api/admin/registrations?page=${currentPage}&status=${statusFilter}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/admin/registrations?page=${currentPage}&status=${statusFilter}`,
         {
           credentials: 'include',
         }
@@ -101,7 +101,7 @@ export default function Registrations() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5051/api/admin/registrations/stats', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/admin/registrations/stats`, {
         credentials: 'include',
       });
       const data = await response.json();
@@ -114,7 +114,7 @@ export default function Registrations() {
   const updateRegistrationStatus = async (id: number, status: string, notes?: string) => {
     try {
       setUpdating(id);
-      const response = await fetch(`http://localhost:5051/api/admin/registrations/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/admin/registrations/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +140,7 @@ export default function Registrations() {
     if (!confirm('Are you sure you want to delete this registration?')) return;
     
     try {
-      const response = await fetch(`http://localhost:5051/api/admin/registrations/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/admin/registrations/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });

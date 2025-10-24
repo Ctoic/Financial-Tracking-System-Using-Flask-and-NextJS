@@ -19,7 +19,7 @@ export default function Login() {
     try {
       // First, try to directly check if the backend is accessible 
       try {
-        await axios.get('http://localhost:5051/');
+        await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/`);
         console.log('Backend is accessible');
       } catch (error) {
         console.error('Backend connection error:', error);

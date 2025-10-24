@@ -79,7 +79,7 @@ export default function Students() {
     setError(null);
     try {
       const response = await axios.get<StudentsResponse>(
-        'http://localhost:5051/api/students',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/students`,
         {
           withCredentials: true,
           params: { page, per_page: perPage },
@@ -119,7 +119,7 @@ export default function Students() {
 
   const fetchRooms = async () => {
     try {
-      const response = await axios.get<{rooms?: any[], error?: string}>('http://localhost:5051/api/rooms', {
+      const response = await axios.get<{rooms?: any[], error?: string}>(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/rooms`, {
         withCredentials: true
       });
       
@@ -147,7 +147,7 @@ export default function Students() {
           room_id: parseInt(formData.room_id)
         };
         
-        await axios.put(`http://localhost:5051/api/students/${selectedStudent.id}`, updateData, {
+        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/students/${selectedStudent.id}`, updateData, {
           withCredentials: true
         });
         toast.success('Student updated successfully');
@@ -159,7 +159,7 @@ export default function Students() {
           room_id: parseInt(formData.room_id)
         };
         
-        await axios.post('http://localhost:5051/api/students', newStudentData, {
+        await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/students`, newStudentData, {
           withCredentials: true
         });
         toast.success('Student enrolled successfully');
@@ -177,7 +177,7 @@ export default function Students() {
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this student? This will also delete all associated fee records.')) {
       try {
-        await axios.delete(`http://localhost:5051/api/students/${id}`, {
+        await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/students/${id}`, {
           withCredentials: true
         });
         toast.success('Student deleted successfully');
@@ -233,7 +233,7 @@ export default function Students() {
       const formData = new FormData();
       formData.append('file', uploadFile);
 
-      const response = await axios.post('http://localhost:5051/api/students/bulk-upload', formData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/students/bulk-upload`, formData, {
         withCredentials: true,
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -262,7 +262,7 @@ export default function Students() {
 
   const downloadTemplate = async () => {
     try {
-      const response = await axios.get('http://localhost:5051/api/students/download-template', {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/students/download-template`, {
         withCredentials: true,
         responseType: 'blob',
       });
@@ -397,7 +397,7 @@ export default function Students() {
                           {student.picture ? (
                             <img
                               className="h-10 w-10 rounded-full object-cover"
-                              src={`http://localhost:5051/static/uploads/${student.picture}`}
+                              src={`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/static/uploads/${student.picture}`}
                               alt={student.name || 'Student'}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;

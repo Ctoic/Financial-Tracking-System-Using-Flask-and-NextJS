@@ -69,7 +69,7 @@ def create_app(config_class: type = Config) -> Flask:
     # CORS (kept behavior but centralized here)
     CORS(
         app,
-        origins=["http://localhost:3000", "http://localhost:3001"],
+        origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[

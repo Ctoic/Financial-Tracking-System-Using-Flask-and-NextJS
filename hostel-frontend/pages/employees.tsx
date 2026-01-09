@@ -293,7 +293,7 @@ export default function Employees() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Month</label>
                   <select 
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="border border-border bg-surface text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     value={selectedMonth}
                     onChange={(e) => handleMonthFilter(e.target.value)}
                   >
@@ -312,7 +312,7 @@ export default function Employees() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Year</label>
                   <select 
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="border border-border bg-surface text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     value={selectedYear}
                     onChange={(e) => handleYearFilter(e.target.value)}
                   >
@@ -571,7 +571,7 @@ export default function Employees() {
                     <select
                       value={newSalary.payment_method}
                       onChange={(e) => setNewSalary({ ...newSalary, payment_method: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-border bg-surface text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     >
                       <option value="cash">Cash</option>
                       <option value="bank_transfer">Bank Transfer</option>

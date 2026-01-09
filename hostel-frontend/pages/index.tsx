@@ -1,10 +1,14 @@
 import { useRouter } from 'next/router';
 import { motion } from "framer-motion";
-import { Building2, Users, KeySquare, ChartBar, Sparkles, ShieldCheck, Zap, FileText } from "lucide-react";
+import { Building2, Users, KeySquare, ChartBar, FileText } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
 import HostelRegistrationForm from "../components/HostelRegistrationForm";
+import HostelImageSlider from "../components/HostelImageSlider";
+import HeroSection from "../components/HeroSection";
+import Navbar from "../components/Navbar";
+import TravelTipsSection from "../components/TravelTipsSection";
+import HostelAmenitiesSection from "../components/HostelAmenitiesSection";
 
 function SectionContainer({ children }: { children: React.ReactNode }) {
   return (
@@ -14,47 +18,6 @@ function SectionContainer({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Hero() {
-  const router = useRouter();
-  return (
-    <div className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-surface-muted/70 to-background" />
-      <SectionContainer>
-        <div className="relative pt-24 pb-20 md:pt-32 md:pb-28">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mx-auto max-w-3xl text-center"
-          >
-            <Badge className="mb-4 inline-flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5" />
-              New: Smart occupancy & fee analytics
-            </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">
-              Manage Your Hostel with Confidence
-            </h1>
-            <p className="mt-6 text-lg md:text-xl text-muted-foreground">
-              All-in-one platform to handle students, rooms, and finances — simple, fast, and secure.
-            </p>
-            <div className="mt-8 flex items-center justify-center">
-              <Button onClick={() => router.push('/login')} className="h-12 px-8">
-                Get Started
-              </Button>
-            </div>
-            <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Secure</div>
-              <div className="flex items-center gap-2"><Zap className="h-4 w-4" /> Fast setup</div>
-              <div className="flex items-center gap-2"><ChartBar className="h-4 w-4" /> Real-time analytics</div>
-            </div>
-          </motion.div>
-        </div>
-      </SectionContainer>
-      <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-foreground/5 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-foreground/10 blur-3xl" />
-    </div>
-  );
-}
 
 function Features() {
   const features = [
@@ -80,46 +43,45 @@ function Features() {
     },
   ];
   return (
-    <SectionContainer>
-      <div className="py-16 md:py-24">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Everything you need to run a modern hostel
-          </h2>
-          <p className="mt-4 text-muted-foreground">
-            Streamlined tools to save time and reduce errors.
-          </p>
+    <section id="features" className="scroll-mt-24">
+      <SectionContainer>
+        <div className="py-16 md:py-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="mt-4 text-muted-foreground">
+              Streamlined tools to save time and reduce errors.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.4, delay: i * 0.05 }}
+              >
+                <Card className="h-full">
+                  <CardHeader>
+                    <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-surface-muted">
+                      {f.icon}
+                    </div>
+                    <CardTitle className="mt-4">{f.title}</CardTitle>
+                    <CardDescription>{f.desc}</CardDescription>
+                  </CardHeader>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
         </div>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-            >
-              <Card className="h-full">
-                <CardHeader>
-                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-surface-muted">
-                    {f.icon}
-                  </div>
-                  <CardTitle className="mt-4">{f.title}</CardTitle>
-                  <CardDescription>{f.desc}</CardDescription>
-                </CardHeader>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </SectionContainer>
+      </SectionContainer>
+    </section>
   );
 }
 
 function RegistrationSection() {
   return (
     <SectionContainer>
-      <div className="py-16 md:py-24">
+      <div id="registration" className="scroll-mt-24 py-16 md:py-24">
         <div className="mx-auto max-w-3xl text-center mb-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -161,29 +123,31 @@ function Stats() {
     { label: "Uptime", value: "99.9%" },
   ];
   return (
-    <SectionContainer>
-      <div className="py-12">
-        <Card>
-          <CardContent className="py-10">
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-4 text-center">
-              {stats.map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
-                  className="space-y-1"
-                >
-                  <div className="text-3xl font-bold text-foreground">{s.value}</div>
-                  <div className="text-sm text-muted-foreground">{s.label}</div>
-                </motion.div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </SectionContainer>
+    <section id="stats" className="scroll-mt-24">
+      <SectionContainer>
+        <div className="py-12">
+          <Card>
+            <CardContent className="py-10">
+              <div className="grid grid-cols-2 gap-6 md:grid-cols-4 text-center">
+                {stats.map((s, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ duration: 0.4, delay: i * 0.05 }}
+                    className="space-y-1"
+                  >
+                    <div className="text-3xl font-bold text-foreground">{s.value}</div>
+                    <div className="text-sm text-muted-foreground">{s.label}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </SectionContainer>
+    </section>
   );
 }
 
@@ -206,35 +170,37 @@ function Testimonials() {
     },
   ];
   return (
-    <SectionContainer>
-      <div className="py-16 md:py-24">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">Loved by hostel teams</h2>
-          <p className="mt-3 text-muted-foreground">Real stories from operators who switched.</p>
+    <section id="testimonials" className="scroll-mt-24">
+      <SectionContainer>
+        <div className="py-16 md:py-24">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground">Loved by hostel teams</h2>
+            <p className="mt-3 text-muted-foreground">Real stories from operators who switched.</p>
+          </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {items.map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.4, delay: i * 0.07 }}
+              >
+                <Card className="h-full">
+                  <CardContent className="pt-6">
+                    <p className="text-foreground">“{t.quote}”</p>
+                    <div className="mt-6 text-sm text-muted-foreground">
+                      <div className="font-semibold text-foreground">{t.name}</div>
+                      <div>{t.role}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
         </div>
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {items.map((t, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.4, delay: i * 0.07 }}
-            >
-              <Card className="h-full">
-                <CardContent className="pt-6">
-                  <p className="text-foreground">“{t.quote}”</p>
-                  <div className="mt-6 text-sm text-muted-foreground">
-                    <div className="font-semibold text-foreground">{t.name}</div>
-                    <div>{t.role}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </SectionContainer>
+      </SectionContainer>
+    </section>
   );
 }
 
@@ -266,11 +232,15 @@ function CTA() {
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Hero />
+      <Navbar />
+      <HeroSection />
+      <HostelImageSlider />
       <Features />
+      <HostelAmenitiesSection />
       <RegistrationSection />
       <Stats />
       <Testimonials />
+      <TravelTipsSection />
       <CTA />
       <footer className="py-10 border-t border-border">
         <SectionContainer>

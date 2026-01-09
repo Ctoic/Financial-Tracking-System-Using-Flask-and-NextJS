@@ -264,7 +264,7 @@ export default function Expenses() {
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="appearance-none bg-white border-2 border-gray-200 rounded-lg px-4 py-2.5 pr-10 text-gray-700 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 hover:border-gray-300 cursor-pointer min-w-[140px]"
+                  className="appearance-none bg-surface border border-border rounded-lg px-4 py-2.5 pr-10 text-foreground font-medium focus:border-transparent focus:ring-2 focus:ring-ring transition-all duration-200 hover:border-muted-foreground cursor-pointer min-w-[140px]"
                 >
                   {months.map(month => (
                     <option key={month.value} value={month.value}>
@@ -283,7 +283,7 @@ export default function Expenses() {
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="appearance-none bg-white border-2 border-gray-200 rounded-lg px-4 py-2.5 pr-10 text-gray-700 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 hover:border-gray-300 cursor-pointer min-w-[100px]"
+                  className="appearance-none bg-surface border border-border rounded-lg px-4 py-2.5 pr-10 text-foreground font-medium focus:border-transparent focus:ring-2 focus:ring-ring transition-all duration-200 hover:border-muted-foreground cursor-pointer min-w-[100px]"
                 >
                   {years.map(year => (
                     <option key={year.value} value={year.value}>

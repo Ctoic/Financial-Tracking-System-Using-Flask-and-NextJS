@@ -182,38 +182,6 @@ def get_csrf_token():
     return jsonify({"csrf_token": generate_csrf()})
 
 
-@auth_bp.route("/signup", methods=["POST"])
-def signup():
-    try:
-        data = request.get_json()
-
-        # Check if username already exists
-        if Admin.query.filter_by(username=data["username"]).first():
-            return jsonify({"success": False, "message": "Username already exists"}), 400
-
-        # Check if email already exists
-        if Admin.query.filter_by(email=data["email"]).first():
-            return jsonify({"success": False, "message": "Email already exists"}), 400
-
-        # Create new admin user
-        hashed_password = _bcrypt.generate_password_hash(data["password"]).decode("utf-8")
-        new_admin = Admin(
-            name=data["name"],
-            email=data["email"],
-            username=data["username"],
-            password_hash=hashed_password,
-        )
-
-        db.session.add(new_admin)
-        db.session.commit()
-
-        return jsonify({"success": True, "message": "Account created successfully"}), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
-
-
 @auth_bp.route("/login", methods=["POST"])
 def api_login():
     try:

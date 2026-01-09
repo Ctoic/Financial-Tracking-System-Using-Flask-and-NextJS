@@ -23,11 +23,11 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="admin-shell min-h-screen bg-background text-foreground">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-indigo-700 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
-        <div className="flex items-center justify-center h-16 bg-indigo-800">
-          <h1 className="text-white text-xl font-bold">Hostel Management</h1>
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface text-foreground border-r border-border transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
+        <div className="flex items-center justify-center h-16 border-b border-border">
+          <h1 className="text-foreground text-xl font-bold">Hostel Management</h1>
         </div>
         <nav className="mt-5 px-2">
           {navigation.map((item) => (
@@ -36,13 +36,13 @@ export default function Layout({ children }: LayoutProps) {
               href={item.href}
               className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                 router.pathname === item.href
-                  ? 'bg-indigo-800 text-white'
-                  : 'text-indigo-100 hover:bg-indigo-600'
+                  ? 'bg-surface-muted text-foreground'
+                  : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground'
               }`}
             >
               <svg
                 className={`mr-4 h-6 w-6 ${
-                  router.pathname === item.href ? 'text-white' : 'text-indigo-300 group-hover:text-white'
+                  router.pathname === item.href ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
                 }`}
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -60,21 +60,21 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <div className={`${isSidebarOpen ? 'ml-64' : 'ml-0'} transition-margin duration-300 ease-in-out`}>
         {/* Header */}
-        <header className="bg-white shadow">
+        <header className="bg-surface shadow-sm border-b border-border">
           <div className="flex items-center justify-between h-16 px-4">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="text-gray-500 hover:text-gray-600 focus:outline-none"
+              className="text-muted-foreground hover:text-foreground focus:outline-none"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             <div className="flex items-center">
-              <span className="text-gray-700 mr-4">{user?.name}</span>
+              <span className="text-foreground mr-4">{user?.name}</span>
               <button
                 onClick={logout}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-sm font-medium"
               >
                 Logout
               </button>

@@ -1,20 +1,187 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --font-sans: "Space Grotesk";
+  --tone-50: #fafafa;
+  --tone-100: #f1f1f1;
+  --tone-200: #e3e3e3;
+  --tone-300: #d1d1d1;
+  --tone-400: #b6b6b6;
+  --tone-500: #8f8f8f;
+  --tone-600: #6f6f6f;
+  --tone-700: #4f4f4f;
+  --tone-800: #2f2f2f;
+  --tone-900: #1a1a1a;
+  --tone-950: #0b0b0b;
   --background: #ffffff;
-  --foreground: #171717;
+  --surface: #ffffff;
+  --surface-muted: #f5f5f5;
+  --foreground: #0b0b0b;
+  --muted-foreground: #5f5f5f;
+  --border: #e5e5e5;
+  --primary: #0b0b0b;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #0b0b0b;
+  --ring: #0b0b0b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b0b0b;
+    --surface: #121212;
+    --surface-muted: #1a1a1a;
+    --foreground: #f5f5f5;
+    --muted-foreground: #b3b3b3;
+    --border: #2a2a2a;
+    --primary: #f5f5f5;
+    --primary-foreground: #0b0b0b;
+    --secondary: #121212;
+    --secondary-foreground: #f5f5f5;
+    --ring: #f5f5f5;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  body {
+    min-height: 100%;
+    background: radial-gradient(1200px circle at top, var(--surface-muted), var(--background) 55%);
+    color: var(--foreground);
+  }
+
+  ::selection {
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  .admin-shell {
+    --tone-50: #0c0c0c;
+    --tone-100: #111111;
+    --tone-200: #151515;
+    --tone-300: #1a1a1a;
+    --tone-400: #202020;
+    --tone-500: #262626;
+    --tone-600: #2d2d2d;
+    --tone-700: #383838;
+    --tone-800: #464646;
+    --tone-900: #565656;
+    --tone-950: #6a6a6a;
+    --background: #0c0c0c;
+    --surface: #121212;
+    --surface-muted: #1a1a1a;
+    --foreground: #f5f5f5;
+    --muted-foreground: #b8b8b8;
+    --border: #2a2a2a;
+    --primary: #1f1f1f;
+    --primary-foreground: #f5f5f5;
+    --secondary: #151515;
+    --secondary-foreground: #f5f5f5;
+    --ring: #f5f5f5;
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .admin-shell .bg-white {
+    background-color: var(--surface);
+  }
+
+  .admin-shell .bg-gray-50,
+  .admin-shell .bg-gray-100 {
+    background-color: var(--surface-muted);
+  }
+
+  .admin-shell .bg-blue-50,
+  .admin-shell .bg-indigo-50,
+  .admin-shell .bg-green-50,
+  .admin-shell .bg-emerald-50,
+  .admin-shell .bg-purple-50,
+  .admin-shell .bg-amber-50,
+  .admin-shell .bg-red-50 {
+    background-color: var(--surface-muted);
+  }
+
+  .admin-shell .border-gray-100,
+  .admin-shell .border-gray-200,
+  .admin-shell .border-gray-300,
+  .admin-shell .border-blue-200,
+  .admin-shell .border-indigo-200,
+  .admin-shell .border-green-200,
+  .admin-shell .border-emerald-200,
+  .admin-shell .border-purple-200,
+  .admin-shell .border-amber-200,
+  .admin-shell .border-red-200 {
+    border-color: var(--border);
+  }
+
+  .admin-shell .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--border);
+  }
+
+  .admin-shell .text-gray-900,
+  .admin-shell .text-gray-800,
+  .admin-shell .text-gray-700,
+  .admin-shell .text-blue-600,
+  .admin-shell .text-indigo-600,
+  .admin-shell .text-green-600,
+  .admin-shell .text-emerald-600,
+  .admin-shell .text-purple-600,
+  .admin-shell .text-amber-600,
+  .admin-shell .text-red-600,
+  .admin-shell .text-blue-700,
+  .admin-shell .text-indigo-700,
+  .admin-shell .text-green-700,
+  .admin-shell .text-emerald-700,
+  .admin-shell .text-purple-700,
+  .admin-shell .text-amber-700,
+  .admin-shell .text-red-700 {
+    color: var(--foreground);
+  }
+
+  .admin-shell .text-gray-600,
+  .admin-shell .text-gray-500,
+  .admin-shell .text-gray-400,
+  .admin-shell .text-gray-300 {
+    color: var(--muted-foreground);
+  }
+
+  .admin-shell .placeholder-gray-400::placeholder,
+  .admin-shell .placeholder-gray-500::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .admin-shell .bg-gradient-to-r {
+    background-image: none;
+    background-color: var(--surface-muted);
+  }
+
+  .admin-shell button.bg-gradient-to-r,
+  .admin-shell a.bg-gradient-to-r {
+    background-color: var(--primary);
+  }
+
+  .admin-shell .bg-gradient-to-br {
+    background-image: none;
+    background-color: var(--surface);
+  }
+
+  .admin-shell .shadow,
+  .admin-shell .shadow-lg,
+  .admin-shell .shadow-xl,
+  .admin-shell .shadow-2xl {
+    box-shadow: 0 14px 40px -28px rgba(0, 0, 0, 0.85);
+  }
 }

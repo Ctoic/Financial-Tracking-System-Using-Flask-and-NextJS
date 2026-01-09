@@ -1,16 +1,10 @@
 import { useRouter } from 'next/router';
-import { Inter } from "next/font/google";
 import { motion } from "framer-motion";
 import { Building2, Users, KeySquare, ChartBar, Sparkles, ShieldCheck, Zap, FileText } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import HostelRegistrationForm from "../components/HostelRegistrationForm";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 function SectionContainer({ children }: { children: React.ReactNode }) {
   return (
@@ -24,7 +18,7 @@ function Hero() {
   const router = useRouter();
   return (
     <div className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-blue-50/60 to-indigo-100/40 dark:from-blue-900/20 dark:to-indigo-900/10" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-surface-muted/70 to-background" />
       <SectionContainer>
         <div className="relative pt-24 pb-20 md:pt-32 md:pb-28">
           <motion.div
@@ -37,21 +31,18 @@ function Hero() {
               <Sparkles className="h-3.5 w-3.5" />
               New: Smart occupancy & fee analytics
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-gray-900 dark:text-white">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">
               Manage Your Hostel with Confidence
             </h1>
-            <p className="mt-6 text-lg md:text-xl text-gray-700 dark:text-gray-300">
+            <p className="mt-6 text-lg md:text-xl text-muted-foreground">
               All-in-one platform to handle students, rooms, and finances — simple, fast, and secure.
             </p>
-            <div className="mt-8 flex items-center justify-center gap-4">
+            <div className="mt-8 flex items-center justify-center">
               <Button onClick={() => router.push('/login')} className="h-12 px-8">
                 Get Started
               </Button>
-              <Button variant="outline" className="h-12 px-8" onClick={() => router.push('/signup')}>
-                Create an account
-              </Button>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+            <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Secure</div>
               <div className="flex items-center gap-2"><Zap className="h-4 w-4" /> Fast setup</div>
               <div className="flex items-center gap-2"><ChartBar className="h-4 w-4" /> Real-time analytics</div>
@@ -59,8 +50,8 @@ function Hero() {
           </motion.div>
         </div>
       </SectionContainer>
-      <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
+      <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-foreground/5 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-foreground/10 blur-3xl" />
     </div>
   );
 }
@@ -68,22 +59,22 @@ function Hero() {
 function Features() {
   const features = [
     {
-      icon: <Users className="h-6 w-6 text-blue-600" />,
+      icon: <Users className="h-6 w-6 text-foreground" />,
       title: "Student Management",
       desc: "Maintain profiles, allocations, and payments with ease.",
     },
     {
-      icon: <Building2 className="h-6 w-6 text-blue-600" />,
+      icon: <Building2 className="h-6 w-6 text-foreground" />,
       title: "Room Management",
       desc: "Track occupancy, maintenance, and availability in real time.",
     },
     {
-      icon: <ChartBar className="h-6 w-6 text-blue-600" />,
+      icon: <ChartBar className="h-6 w-6 text-foreground" />,
       title: "Financial Tracking",
       desc: "Monitor expenses, fee collections, and generate reports.",
     },
     {
-      icon: <KeySquare className="h-6 w-6 text-blue-600" />,
+      icon: <KeySquare className="h-6 w-6 text-foreground" />,
       title: "Access Control",
       desc: "Granular roles and permissions for staff members.",
     },
@@ -92,10 +83,10 @@ function Features() {
     <SectionContainer>
       <div className="py-16 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             Everything you need to run a modern hostel
           </h2>
-          <p className="mt-4 text-gray-700 dark:text-gray-300">
+          <p className="mt-4 text-muted-foreground">
             Streamlined tools to save time and reduce errors.
           </p>
         </div>
@@ -110,7 +101,7 @@ function Features() {
             >
               <Card className="h-full">
                 <CardHeader>
-                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-surface-muted">
                     {f.icon}
                   </div>
                   <CardTitle className="mt-4">{f.title}</CardTitle>
@@ -137,14 +128,14 @@ function RegistrationSection() {
             transition={{ duration: 0.6 }}
           >
             <div className="flex items-center justify-center mb-4">
-              <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-blue-50 dark:bg-blue-900/30">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-surface-muted">
+                <FileText className="h-6 w-6 text-foreground" />
               </div>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground">
               Apply for Hostel Accommodation
             </h2>
-            <p className="mt-4 text-gray-700 dark:text-gray-300">
+            <p className="mt-4 text-muted-foreground">
               Ready to join our hostel community? Fill out the registration form below and we'll get back to you with availability and next steps.
             </p>
           </motion.div>
@@ -184,8 +175,8 @@ function Stats() {
                   transition={{ duration: 0.4, delay: i * 0.05 }}
                   className="space-y-1"
                 >
-                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{s.value}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{s.label}</div>
+                  <div className="text-3xl font-bold text-foreground">{s.value}</div>
+                  <div className="text-sm text-muted-foreground">{s.label}</div>
                 </motion.div>
               ))}
             </div>
@@ -218,8 +209,8 @@ function Testimonials() {
     <SectionContainer>
       <div className="py-16 md:py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Loved by hostel teams</h2>
-          <p className="mt-3 text-gray-700 dark:text-gray-300">Real stories from operators who switched.</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">Loved by hostel teams</h2>
+          <p className="mt-3 text-muted-foreground">Real stories from operators who switched.</p>
         </div>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {items.map((t, i) => (
@@ -232,9 +223,9 @@ function Testimonials() {
             >
               <Card className="h-full">
                 <CardContent className="pt-6">
-                  <p className="text-gray-800 dark:text-gray-200">“{t.quote}”</p>
-                  <div className="mt-6 text-sm text-gray-600 dark:text-gray-400">
-                    <div className="font-semibold text-gray-900 dark:text-gray-100">{t.name}</div>
+                  <p className="text-foreground">“{t.quote}”</p>
+                  <div className="mt-6 text-sm text-muted-foreground">
+                    <div className="font-semibold text-foreground">{t.name}</div>
                     <div>{t.role}</div>
                   </div>
                 </CardContent>
@@ -252,20 +243,17 @@ function CTA() {
   return (
     <SectionContainer>
       <div className="py-20">
-        <Card className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
+        <Card className="bg-foreground text-background">
           <CardHeader>
             <CardTitle className="text-2xl md:text-3xl">Ready to streamline your hostel?</CardTitle>
-            <CardDescription className="text-blue-50">
+            <CardDescription className="text-background/70">
               Get started in minutes. No credit card required.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row items-center gap-4">
-              <Button onClick={() => router.push('/login')} className="h-11 px-8 bg-white text-blue-700 hover:bg-blue-50">
+              <Button variant="secondary" onClick={() => router.push('/login')} className="h-11 px-8">
                 Launch Dashboard
-              </Button>
-              <Button variant="secondary" onClick={() => router.push('/signup')} className="h-11 px-8">
-                Create an account
               </Button>
             </div>
           </CardContent>
@@ -277,23 +265,23 @@ function CTA() {
 
 export default function Home() {
   return (
-    <div className={`${inter.className} min-h-screen bg-white dark:bg-gray-950`}>
+    <div className="min-h-screen bg-background text-foreground">
       <Hero />
       <Features />
       <RegistrationSection />
       <Stats />
       <Testimonials />
       <CTA />
-      <footer className="py-10 border-t border-gray-200 dark:border-gray-800">
+      <footer className="py-10 border-t border-border">
         <SectionContainer>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4" /> Hostel Management System
             </div>
             <div className="flex items-center gap-6">
-              <a className="hover:text-gray-900 dark:hover:text-gray-200" href="#">Privacy</a>
-              <a className="hover:text-gray-900 dark:hover:text-gray-200" href="#">Terms</a>
-              <a className="hover:text-gray-900 dark:hover:text-gray-200" href="#">Contact</a>
+              <a className="hover:text-foreground" href="#">Privacy</a>
+              <a className="hover:text-foreground" href="#">Terms</a>
+              <a className="hover:text-foreground" href="#">Contact</a>
             </div>
             <div>© {new Date().getFullYear()} All rights reserved.</div>
           </div>

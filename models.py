@@ -181,3 +181,27 @@ class HostelRegistration(db.Model):
     
     def __repr__(self):
         return f'<HostelRegistration {self.name} - {self.status}>'
+
+# MealTiming Model
+class MealTiming(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    meal_name = db.Column(db.String(50), unique=True, nullable=False)
+    start_time = db.Column(db.String(5))
+    end_time = db.Column(db.String(5))
+    notes = db.Column(db.String(200))
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<MealTiming {self.meal_name} {self.start_time}-{self.end_time}>'
+
+# MealMenu Model
+class MealMenu(db.Model):
+    __table_args__ = (db.UniqueConstraint('day_of_week', 'meal_name', name='uix_day_meal'),)
+    id = db.Column(db.Integer, primary_key=True)
+    day_of_week = db.Column(db.Integer, nullable=False)  # 0=Monday ... 6=Sunday
+    meal_name = db.Column(db.String(50), nullable=False)
+    menu_items = db.Column(db.Text)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<MealMenu {self.day_of_week} {self.meal_name}>'

@@ -39,6 +39,8 @@ export default function Students() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPaginationLoading, setIsPaginationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     fee: '',
@@ -64,11 +66,25 @@ export default function Students() {
   }, [loading, isAuthenticated, router]);
 
   useEffect(() => {
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
     if (isAuthenticated) {
       fetchStudents();
       fetchRooms();
     }
-  }, [isAuthenticated, page, perPage]);
+  }, [isAuthenticated, page, perPage, debouncedSearch]);
 
   const fetchStudents = async (isPagination = false) => {
     if (isPagination) {
@@ -82,7 +98,11 @@ export default function Students() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5051'}/api/students`,
         {
           withCredentials: true,
-          params: { page, per_page: perPage },
+          params: {
+            page,
+            per_page: perPage,
+            search: debouncedSearch || undefined,
+          },
         }
       );
 
@@ -348,6 +368,23 @@ export default function Students() {
               Download Template
             </button>
           </div>
+        </div>
+
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="w-full max-w-md">
+            <input
+              type="text"
+              placeholder="Search by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-border bg-surface text-foreground rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+            />
+          </div>
+          {meta ? (
+            <div className="text-sm text-gray-500">
+              Showing {meta.total} student{meta.total === 1 ? '' : 's'}
+            </div>
+          ) : null}
         </div>
 
         {/* Students Table */}

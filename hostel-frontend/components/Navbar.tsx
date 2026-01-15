@@ -5,8 +5,8 @@ import { Menu, X } from "lucide-react";
 const navItems = [
   { id: "home", label: "Home" },
   { id: "spaces", label: "Spaces" },
-  { id: "features", label: "Features" },
   { id: "amenities", label: "Amenities" },
+  { id: "meals", label: "Meals" },
   { id: "registration", label: "Apply" },
   { id: "stats", label: "Stats" },
   { id: "testimonials", label: "Stories" },
@@ -52,16 +52,16 @@ export default function Navbar() {
   const navClass = useMemo(() => {
     return `fixed top-0 z-50 w-full transition-all duration-300 ${
       isScrolled
-        ? "bg-black/70 backdrop-blur-lg"
-        : "bg-transparent"
+        ? "bg-black/55 backdrop-blur-lg"
+        : "bg-black/35 backdrop-blur-lg"
     }`;
   }, [isScrolled]);
 
   const linkClass = (id: string) =>
-    `px-4 py-2 rounded-full text-xs uppercase tracking-[0.25em] transition-colors ${
+    `px-4 py-2 rounded-full text-sm uppercase tracking-[0.2em] font-semibold transition-colors drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] ${
       activeId === id
-        ? "bg-white/15 text-white border border-white/30"
-        : "text-white/70 hover:text-white hover:bg-white/10"
+        ? "bg-white/25 text-white border border-white/40"
+        : "text-white/75 hover:text-white hover:bg-white/10"
     }`;
 
   const handleAnchorClick = (id: string) => {
@@ -74,16 +74,16 @@ export default function Navbar() {
 
   return (
     <nav className={navClass}>
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
         <button
           type="button"
           onClick={() => handleAnchorClick("home")}
-          className="flex items-center gap-2 text-white"
+          className="flex items-center gap-2 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
         >
           <span className="text-lg font-semibold lowercase tracking-[0.12em]">roomigo</span>
         </button>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-6 lg:flex">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -99,7 +99,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           <Link
             href="/login"
-            className="hidden rounded-full border border-white/40 px-5 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white hover:text-black lg:inline-flex"
+            className="hidden rounded-full bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.22em] text-black shadow-sm transition hover:bg-white/90 lg:inline-flex"
           >
             Admin Login
           </Link>
@@ -131,7 +131,7 @@ export default function Navbar() {
             ))}
             <Link
               href="/login"
-              className="mt-4 inline-flex w-fit rounded-full border border-white/40 px-5 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white hover:text-black"
+              className="mt-4 inline-flex w-fit rounded-full bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.22em] text-black shadow-sm transition hover:bg-white/90"
             >
               Admin Login
             </Link>

@@ -17,7 +17,7 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import generate_csrf
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from sqlalchemy import extract
+from sqlalchemy import extract, or_
 import pandas as pd
 
 # Models / DB
@@ -32,6 +32,8 @@ from models import (
     Employee,
     SalaryRecord,
     HostelRegistration,
+    MealTiming,
+    MealMenu,
 )
 
 # -----------------------------
@@ -99,6 +101,7 @@ def create_app(config_class: type = Config) -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(rooms_bp)
+    app.register_blueprint(meals_bp)
     app.register_blueprint(expenses_bp)
     app.register_blueprint(fees_bp)
     app.register_blueprint(students_api_bp)
@@ -238,6 +241,7 @@ def logout():
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/api")
 rooms_bp = Blueprint("rooms", __name__, url_prefix="/api")
+meals_bp = Blueprint("meals", __name__, url_prefix="/api")
 
 
 @dashboard_bp.route("/dashboard")
@@ -290,6 +294,15 @@ def api_dashboard():
         current_month_income = sum(monthly_income[-1:])
         profit_loss = current_month_income - current_month_expenses
 
+        total_fee_current = (
+            db.session.query(db.func.sum(Student.fee))
+            .filter(Student.status == "active")
+            .scalar()
+            or 0
+        )
+        received_fee_current = current_month_income
+        pending_fee_current = max(total_fee_current - received_fee_current, 0)
+
         fully_paid = (
             Student.query.filter_by(status="active").filter(Student.fee_status == "paid").count()
         )
@@ -322,6 +335,9 @@ def api_dashboard():
                 "current_month_expenses": current_month_expenses,
                 "current_month_income": current_month_income,
                 "profit_loss": profit_loss,
+                "total_fee_current": total_fee_current,
+                "received_fee_current": received_fee_current,
+                "pending_fee_current": pending_fee_current,
                 "fully_paid": fully_paid,
                 "partially_paid": partially_paid,
                 "unpaid": unpaid,
@@ -367,6 +383,154 @@ def api_rooms():
     except Exception as e:
         print(f"Error in api_rooms: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+# -----------------------------
+# Blueprints: Meals
+# -----------------------------
+
+def _build_meals_payload():
+    timings = MealTiming.query.order_by(MealTiming.meal_name.asc()).all()
+    menu = MealMenu.query.order_by(MealMenu.day_of_week.asc(), MealMenu.meal_name.asc()).all()
+    return {
+        "timings": [
+            {
+                "meal_name": timing.meal_name,
+                "start_time": timing.start_time,
+                "end_time": timing.end_time,
+                "notes": timing.notes,
+            }
+            for timing in timings
+        ],
+        "menu": [
+            {
+                "day_of_week": item.day_of_week,
+                "meal_name": item.meal_name,
+                "menu_items": item.menu_items,
+            }
+            for item in menu
+        ],
+    }
+
+
+@meals_bp.route("/meals", methods=["GET"])
+@login_required
+def api_meals():
+    try:
+        return jsonify(_build_meals_payload())
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@meals_bp.route("/meals/public", methods=["GET"])
+def api_meals_public():
+    try:
+        return jsonify(_build_meals_payload())
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@meals_bp.route("/meals/timings", methods=["PUT"])
+@login_required
+def api_meal_timings():
+    try:
+        data = request.get_json() or {}
+        timings_payload = data.get("timings")
+
+        if not isinstance(timings_payload, list):
+            return jsonify({"success": False, "message": "timings must be a list"}), 400
+
+        for item in timings_payload:
+            meal_name = str(item.get("meal_name", "")).strip()
+            if not meal_name:
+                return jsonify({"success": False, "message": "meal_name is required"}), 400
+
+            start_time = (item.get("start_time") or "").strip() or None
+            end_time = (item.get("end_time") or "").strip() or None
+            notes = (item.get("notes") or "").strip() or None
+
+            record = MealTiming.query.filter_by(meal_name=meal_name).first()
+            if not record:
+                record = MealTiming(meal_name=meal_name)
+                db.session.add(record)
+
+            record.start_time = start_time
+            record.end_time = end_time
+            record.notes = notes
+
+        db.session.commit()
+
+        updated = MealTiming.query.order_by(MealTiming.meal_name.asc()).all()
+        return jsonify(
+            {
+                "success": True,
+                "timings": [
+                    {
+                        "meal_name": timing.meal_name,
+                        "start_time": timing.start_time,
+                        "end_time": timing.end_time,
+                        "notes": timing.notes,
+                    }
+                    for timing in updated
+                ],
+            }
+        )
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@meals_bp.route("/meals/menu", methods=["PUT"])
+@login_required
+def api_meal_menu():
+    try:
+        data = request.get_json() or {}
+        menu_payload = data.get("menu")
+
+        if not isinstance(menu_payload, list):
+            return jsonify({"success": False, "message": "menu must be a list"}), 400
+
+        for item in menu_payload:
+            try:
+                day_of_week = int(item.get("day_of_week"))
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "message": "day_of_week must be an integer"}), 400
+
+            if day_of_week < 0 or day_of_week > 6:
+                return jsonify({"success": False, "message": "day_of_week must be between 0 and 6"}), 400
+
+            meal_name = str(item.get("meal_name", "")).strip()
+            if not meal_name:
+                return jsonify({"success": False, "message": "meal_name is required"}), 400
+
+            menu_items = (item.get("menu_items") or "").strip() or None
+
+            record = MealMenu.query.filter_by(day_of_week=day_of_week, meal_name=meal_name).first()
+            if not record:
+                record = MealMenu(day_of_week=day_of_week, meal_name=meal_name)
+                db.session.add(record)
+
+            record.menu_items = menu_items
+
+        db.session.commit()
+
+        updated = MealMenu.query.order_by(MealMenu.day_of_week.asc(), MealMenu.meal_name.asc()).all()
+        return jsonify(
+            {
+                "success": True,
+                "menu": [
+                    {
+                        "day_of_week": item.day_of_week,
+                        "meal_name": item.meal_name,
+                        "menu_items": item.menu_items,
+                    }
+                    for item in updated
+                ],
+            }
+        )
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 # -----------------------------
@@ -665,6 +829,7 @@ def api_students():
             # --- Pagination params ---
             page = request.args.get("page", 1, type=int)
             per_page = request.args.get("per_page", 10, type=int)
+            search = request.args.get("search", "", type=str).strip()
             # clamp per_page to sane bounds
             if per_page <= 0:
                 per_page = 10
@@ -672,6 +837,15 @@ def api_students():
 
             # Base query (customize filters/sorting here if needed)
             query = Student.query
+            if search:
+                like = f"%{search}%"
+                query = query.filter(
+                    or_(
+                        Student.name.ilike(like),
+                        Student.email.ilike(like),
+                        Student.phone.ilike(like),
+                    )
+                )
             total = query.count()
 
             students = (
@@ -803,11 +977,21 @@ def get_students():
         # Pagination for legacy endpoint
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 20, type=int)
+        search = request.args.get("search", "", type=str).strip()
         if per_page <= 0:
             per_page = 20
         per_page = min(per_page, 100)
 
         query = Student.query
+        if search:
+            like = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Student.name.ilike(like),
+                    Student.email.ilike(like),
+                    Student.phone.ilike(like),
+                )
+            )
         total = query.count()
         students = (
             query.order_by(Student.id.desc())
@@ -1556,6 +1740,7 @@ def get_registration_stats():
         contacted_count = HostelRegistration.query.filter_by(status="contacted").count()
         approved_count = HostelRegistration.query.filter_by(status="approved").count()
         rejected_count = HostelRegistration.query.filter_by(status="rejected").count()
+        
         
         # Recent registrations (last 7 days)
         from datetime import timedelta

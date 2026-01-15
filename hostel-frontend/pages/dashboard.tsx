@@ -36,6 +36,9 @@ interface DashboardData {
   current_month_expenses: number;
   current_month_income: number;
   profit_loss: number;
+  total_fee_current: number;
+  received_fee_current: number;
+  pending_fee_current: number;
   fully_paid: number;
   partially_paid: number;
   unpaid: number;
@@ -57,6 +60,9 @@ const defaultDashboardData: DashboardData = {
   current_month_expenses: 0,
   current_month_income: 0,
   profit_loss: 0,
+  total_fee_current: 0,
+  received_fee_current: 0,
+  pending_fee_current: 0,
   fully_paid: 0,
   partially_paid: 0,
   unpaid: 0,
@@ -248,6 +254,13 @@ export default function Dashboard() {
   const roomsOccupied = (dashboardData.rooms_occupied ?? Math.max(roomsTotal - roomsAvailable, 0)) as number;
   const occupancyPct = roomsTotal > 0 ? Math.round((roomsOccupied / roomsTotal) * 100) : 0;
 
+  const totalFeeCurrent = dashboardData.total_fee_current ?? 0;
+  const receivedFeeCurrent = dashboardData.received_fee_current ?? dashboardData.current_month_income ?? 0;
+  const pendingFeeCurrent = Math.max(
+    dashboardData.pending_fee_current ?? (totalFeeCurrent - receivedFeeCurrent),
+    0
+  );
+
   const roomsPieData = {
     labels: ['Available', 'Occupied'],
     datasets: [
@@ -299,6 +312,25 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500 mt-1">
               Salaries: Rs{dashboardData.total_salaries_current} | Other: Rs{dashboardData.current_month_expenses - dashboardData.total_salaries_current}
             </p>
+          </div>
+        </div>
+
+        {/* Fee Overview */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Fee Overview (Current Month)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="text-gray-700 text-sm font-medium">Total Fee</h4>
+              <p className="text-2xl font-bold text-gray-900">Rs{totalFeeCurrent}</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4">
+              <h4 className="text-green-800 text-sm font-medium">Received Fee</h4>
+              <p className="text-2xl font-bold text-green-600">Rs{receivedFeeCurrent}</p>
+            </div>
+            <div className="bg-amber-50 rounded-lg p-4">
+              <h4 className="text-amber-800 text-sm font-medium">Pending Fee</h4>
+              <p className="text-2xl font-bold text-amber-600">Rs{pendingFeeCurrent}</p>
+            </div>
           </div>
         </div>
 

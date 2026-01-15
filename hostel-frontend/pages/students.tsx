@@ -487,7 +487,7 @@ export default function Students() {
                     setPerPage(parseInt(e.target.value));
                   }}
                   disabled={isPaginationLoading}
-                  className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="border border-border bg-surface text-foreground rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {[10, 20, 50, 100].map((n) => (
                     <option key={n} value={n}>{n}</option>

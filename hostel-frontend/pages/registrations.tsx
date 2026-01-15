@@ -292,7 +292,7 @@ export default function Registrations() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 border border-border bg-surface text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 >
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
